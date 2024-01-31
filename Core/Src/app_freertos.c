@@ -306,7 +306,7 @@ void APP_HeatTask(void *argument)
         // if ((((Heat_Event_Bit & Heat_BIT_0) || ((Heat_Event_Bit & Auto_BIT_3) != 0)) != 0) && ((Heat_Event_Bit & SW_BIT_1) == 0)) // 加热或自动事件发生，按钮事件没发生（预热模式�?????????????
         if ((((Heat_Event_Bit & Heat_BIT_0) != 0) || ((Heat_Event_Bit & Auto_BIT_3) != 0)) && ((Heat_Event_Bit & SW_BIT_1) == 0))
         {
-            // // printf("预加热模式\n");
+             // printf("预加热模式\n");
             HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
             start_Heat(Temperature_QueueHandle);
             //HAL_I2C_DeInit(&hi2c2);
