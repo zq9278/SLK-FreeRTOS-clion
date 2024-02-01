@@ -1,6 +1,4 @@
 #include "Screen.h"
-#define CMD_HEAD 0XEE			  // 帧头
-#define CMD_TAIL 0XFFFCFFFF		  // 帧尾
 #define CMD_MAX_SIZE 64			  // 帧尾
 uint8_t cmd_buffer[CMD_MAX_SIZE]; // 指令缓存
 
@@ -10,6 +8,7 @@ extern TIM_HandleTypeDef htim7;
 extern uint8_t MotorCompareState;
 
 float temperature_buffer[FILTER_SIZE] = {0};
+float force_mmhg;
 int buffer_index = 0;
 uint32_t Force_buffer[FILTER_SIZE] = {0};
 int buffer_index_Force = 0;
@@ -20,9 +19,13 @@ extern QueueHandle_t Force_QueueHandle;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 const EventBits_t xBitsToSet = Heat_BIT_0;
 const EventBits_t xBitsToSet1 = Motor_BIT_2;
+
+uint8_t SOCvalue;
+
 uint8_t SendBuff[13];
 uint8_t SendBuff2[14];
-int32_t ForceRawSet = 422672; // 屏幕设定的值
+//int32_t ForceRawSet = 422672; // 屏幕设定的值
+int32_t ForceRawSet = 0; // 屏幕设定的值
 
 void processData(PCTRL_MSG msg)
 {									   // HAL_UART_Transmit(&huart1, (uint8_t *)msg, sizeof(CTRL_MSG), 0xFFFF);
@@ -89,9 +92,9 @@ void processData(PCTRL_MSG msg)
 
 	/*脉动开始*/
 	case 0x1005:
-		data = data / 80; // 设定压力
+		force_mmhg = data / 90.0; // 设定压力
 						  // HAL_UART_Transmit(&huart1, (uint8_t *)&data, sizeof(uint16_t), 0xFFFF);
-		ForceRawSet = data * HX711_SCALE_FACTOR;
+		ForceRawSet = force_mmhg * HX711_SCALE_FACTOR;
 		MotorCompareState = 0;
 		xEventGroupSetBits(All_EventHandle, xBitsToSet1); // 设定脉动任务开启标志位
 		break;
@@ -235,7 +238,7 @@ void ScreenUpdateForce(uint32_t value, uint16_t work_mode)
 {
 	// printf("%u",value);
 
-	uint16_t Forcevalue = (uint16_t)(value / HX711_SCALE_FACTOR * 75);
+	uint16_t Forcevalue = (uint16_t)((value / HX711_SCALE_FACTOR)*88.0);
 
 	while (hdma_usart1_tx.State != HAL_DMA_STATE_READY)
 		;
@@ -260,7 +263,7 @@ void ScreenUpdateForce(uint32_t value, uint16_t work_mode)
 
 void ScreenUpdateSOC(uint16_t value, uint8_t state)
 {
-	uint8_t SOCvalue;
+
 	SOCvalue = value / 20;
 	if (SOCvalue == 5)
 		SOCvalue = 4;
@@ -280,62 +283,63 @@ void ScreenUpdateSOC(uint16_t value, uint8_t state)
 	SendBuff[9] = 0xFC;
 	SendBuff[10] = 0xFF;
 	SendBuff[11] = 0xFF;
-HAL_UART_Transmit_DMA(&huart1, SendBuff, 12);
-     vTaskDelay(20);
-	if (value == 100)
-	{
-		SendBuff2[0] = 0xEE;
-		SendBuff2[1] = 0xB1;
-		SendBuff2[2] = 0x10;
-		SendBuff2[3] = 0x00;
-		SendBuff2[4] = 0x01;
-		SendBuff2[5] = 0x00;
-		SendBuff2[6] = 0x04;
-		SendBuff2[7] = value / 100 + '0';
-		SendBuff2[8] = value / 10 % 10 + '0';
-		SendBuff2[9] = value % 10 + '0';
-
-		SendBuff2[10] = 0xFF;
-		SendBuff2[11] = 0xFC;
-		SendBuff2[12] = 0xFF;
-		SendBuff2[13] = 0xFF;
-		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 14);
-	}
-	if (value < 100 && value > 9)
-	{
-		SendBuff2[0] = 0xEE;
-		SendBuff2[1] = 0xB1;
-		SendBuff2[2] = 0x10;
-		SendBuff2[3] = 0x00;
-		SendBuff2[4] = 0x01;
-		SendBuff2[5] = 0x00;
-		SendBuff2[6] = 0x04;
-		SendBuff2[7] = value / 10 % 10 + '0';
-		SendBuff2[8] = value % 10 + '0';
-
-		SendBuff2[9] = 0xFF;
-		SendBuff2[10] = 0xFC;
-		SendBuff2[11] = 0xFF;
-		SendBuff2[12] = 0xFF;
-		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 13);
-	}
-	if (value < 10)
-	{
-		SendBuff2[0] = 0xEE;
-		SendBuff2[1] = 0xB1;
-		SendBuff2[2] = 0x10;
-		SendBuff2[3] = 0x00;
-		SendBuff2[4] = 0x01;
-		SendBuff2[5] = 0x00;
-		SendBuff2[6] = 0x04;
-		SendBuff2[7] = value % 10 + '0';
-
-		SendBuff2[8] = 0xFF;
-		SendBuff2[9] = 0xFC;
-		SendBuff2[10] = 0xFF;
-		SendBuff2[11] = 0xFF;
-		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 12);
-	}
+    HAL_UART_Transmit_DMA(&huart1, SendBuff, 12);
+     //开机第一个页面显示充电具体数值
+//	if (value == 100)
+//	{
+//		SendBuff2[0] = 0xEE;
+//		SendBuff2[1] = 0xB1;
+//		SendBuff2[2] = 0x10;
+//		SendBuff2[3] = 0x00;
+//		SendBuff2[4] = 0x01;
+//		SendBuff2[5] = 0x00;
+//		SendBuff2[6] = 0x04;
+//		SendBuff2[7] = value / 100 + '0';
+//		SendBuff2[8] = value / 10 % 10 + '0';
+//		SendBuff2[9] = value % 10 + '0';
+//
+//		SendBuff2[10] = 0xFF;
+//		SendBuff2[11] = 0xFC;
+//		SendBuff2[12] = 0xFF;
+//		SendBuff2[13] = 0xFF;
+//		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 14);
+//	}
+//	if (value < 100 && value > 9)
+//	{
+//		SendBuff2[0] = 0xEE;
+//		SendBuff2[1] = 0xB1;
+//		SendBuff2[2] = 0x10;
+//		SendBuff2[3] = 0x00;
+//		SendBuff2[4] = 0x01;
+//		SendBuff2[5] = 0x00;
+//		SendBuff2[6] = 0x04;
+//		SendBuff2[7] = value / 10 % 10 + '0';
+//		SendBuff2[8] = value % 10 + '0';
+//
+//		SendBuff2[9] = 0xFF;
+//		SendBuff2[10] = 0xFC;
+//		SendBuff2[11] = 0xFF;
+//		SendBuff2[12] = 0xFF;
+//		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 13);
+//	}
+//	if (value < 10)
+//	{
+//		SendBuff2[0] = 0xEE;
+//		SendBuff2[1] = 0xB1;
+//		SendBuff2[2] = 0x10;
+//		SendBuff2[3] = 0x00;
+//		SendBuff2[4] = 0x01;
+//		SendBuff2[5] = 0x00;
+//		SendBuff2[6] = 0x04;
+//		SendBuff2[7] = value % 10 + '0';
+//
+//		SendBuff2[8] = 0xFF;
+//		SendBuff2[9] = 0xFC;
+//		SendBuff2[10] = 0xFF;
+//		SendBuff2[11] = 0xFF;
+//		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 12);
+//        HAL_Delay(200);
+//	}
 
 	
 }

@@ -6,7 +6,7 @@ uint8_t BQ27441_TempData[2];
 uint8_t NEW_DC_MSB=0x0A,NEW_DC_LSB=0x8C;//2700mAh
 uint8_t NEW_DE_MSB=0x27,NEW_DE_LSB=0x06;//9900mWh
 uint8_t NEW_TV_MSB=0x0B,NEW_TV_LSB=0xB8;//3000mV
-uint8_t NEW_TR_MSB=0x01,NEW_TR_LSB=0xA5;//2700mAh/(0.1*64mA)¡£64mAÎªBQ25895³äµç¹Ø¶ÏµçÁ÷
+uint8_t NEW_TR_MSB=0x01,NEW_TR_LSB=0xA5;//2700mAh/(0.1*64mA)ï¿½ï¿½64mAÎªBQ25895ï¿½ï¿½ï¿½Ø¶Ïµï¿½ï¿½ï¿½
 uint8_t OLD_DC_LSB,OLD_DC_MSB,OLD_DE_LSB,OLD_DE_MSB,OLD_TV_LSB,OLD_TV_MSB,OLD_TR_LSB,OLD_TR_MSB;
 uint8_t CHKSUM;
 uint8_t BQ27441_FLAG_LSB,BQ27441_CONTROL_STATUS_MSB;
@@ -27,11 +27,11 @@ uint8_t BQ27441_Init(void)
 	BQ27441_WriteWord(0x00,0x8000);
 	BQ27441_WriteWord(0x00,0x8000);
 	BQ27441_WriteWord(0x00,0x0013);
-	vTaskDelay(200);
+	vTaskDelay(200/portTICK_PERIOD_MS);
 	//vTaskDelay(2000);
 	
 	BQ27441_Read(0x06,&BQ27441_FLAG_LSB);
-	vTaskDelay(1);
+	vTaskDelay(1/portTICK_PERIOD_MS);
 	while(hi2c1.State != HAL_I2C_STATE_READY){;}
 	if((BQ27441_FLAG_LSB&0x10) != 0x10)
 	{
@@ -40,7 +40,7 @@ uint8_t BQ27441_Init(void)
 	BQ27441_WriteByte(0x61,0x00);
 	BQ27441_WriteByte(0x3E,0x52);
 	BQ27441_WriteByte(0x3F,0x00);
-	vTaskDelay(1);
+	vTaskDelay(1/portTICK_PERIOD_MS);
 	BQ27441_Read(0x60,&OLD_CHKSUM);
 	while(hi2c1.State != HAL_I2C_STATE_READY){;}
 	TMP_CHKSUM=0xff-OLD_CHKSUM;
@@ -53,11 +53,11 @@ uint8_t BQ27441_Init(void)
 	BQ27441_Read(0x5B,&OLD_TR_MSB);
 	BQ27441_Read(0x5C,&OLD_TR_LSB);
 	while(hi2c1.State != HAL_I2C_STATE_READY){;}
-	if(OLD_DC_MSB != NEW_DC_MSB || OLD_DC_LSB != NEW_DC_LSB)//¶ÁÈ¡µç³ØÈÝÁ¿Êý¾Ý£¬ÓëÉè¶¨Ò»Ñù¾Í²»ÓÃÖØÐÂÉè¶¨
+	if(OLD_DC_MSB != NEW_DC_MSB || OLD_DC_LSB != NEW_DC_LSB)//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½è¶¨Ò»ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è¶¨
 	{	
 		TMP_CHKSUM=TMP_CHKSUM-OLD_DC_LSB-OLD_DC_MSB-OLD_DE_LSB-
 			OLD_DE_MSB-OLD_TV_LSB-OLD_TV_MSB-OLD_TR_LSB-OLD_TR_MSB;
-		vTaskDelay(1);
+		vTaskDelay(1/portTICK_PERIOD_MS);
 		BQ27441_WriteByte(0x4A,NEW_DC_MSB);
 		BQ27441_WriteByte(0x4B,NEW_DC_LSB);
 		BQ27441_WriteByte(0x4C,NEW_DE_MSB);
@@ -70,11 +70,11 @@ uint8_t BQ27441_Init(void)
 			NEW_DE_MSB+NEW_TV_LSB+NEW_TV_MSB+NEW_TR_LSB+NEW_TR_MSB;
 		NEW_CHKSUM=0xff-TMP_CHKSUM;
 		BQ27441_WriteByte(0x60,NEW_CHKSUM);
-		vTaskDelay(100);
+		vTaskDelay(100/portTICK_PERIOD_MS);
 		//vTaskDelay(1000);
 		BQ27441_WriteByte(0x3E,0x52);
 		BQ27441_WriteByte(0x3F,0x00);
-		vTaskDelay(1);
+		vTaskDelay(1/portTICK_PERIOD_MS);
 		BQ27441_Read(0x60,&CHKSUM);
 		while(hi2c1.State != HAL_I2C_STATE_READY){;}
 		if(CHKSUM==NEW_CHKSUM)
@@ -82,12 +82,12 @@ uint8_t BQ27441_Init(void)
 			do
 			{
 				BQ27441_WriteWord(0x00,0x0042);
-				vTaskDelay(1);
+				vTaskDelay(1/portTICK_PERIOD_MS);
 				BQ27441_Read(0x06,&BQ27441_FLAG_LSB);
-				vTaskDelay(1);
+				vTaskDelay(1/portTICK_PERIOD_MS);
 			}while((BQ27441_FLAG_LSB&0x10) == 0x10);
 			BQ27441_WriteWord(0x00,0x0020);
-			AT24CXX_WriteOneByte(EEPROM_BQ27441Config_Add,0x55);//ÅäÖÃÍê³ÉºóÐ´ÈëEEPROM
+			AT24CXX_WriteOneByte(EEPROM_BQ27441Config_Add,0x55);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½Ð´ï¿½ï¿½EEPROM
 			return 1;
 		}
 		else
@@ -100,18 +100,18 @@ uint8_t BQ27441_Init(void)
 		do
 		{
 			BQ27441_WriteWord(0x00,0x0042);
-			vTaskDelay(1);
+			vTaskDelay(1/portTICK_PERIOD_MS);
 			BQ27441_Read(0x06,&BQ27441_FLAG_LSB);
-			vTaskDelay(1);
+			vTaskDelay(1/portTICK_PERIOD_MS);
 		}while((BQ27441_FLAG_LSB&0x10) == 0x10);
 		BQ27441_WriteWord(0x00,0x0020);
-		AT24CXX_WriteOneByte(EEPROM_BQ27441Config_Add,0x55);//ÅäÖÃÍê³ÉºóÐ´ÈëEEPROM
+		AT24CXX_WriteOneByte(EEPROM_BQ27441Config_Add,0x55);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½Ð´ï¿½ï¿½EEPROM
 		return 1;
 	}
 	}
 	else
 	{
- 		return 2;//ÒÑ¾­ÅäÖÃ¹ý
+ 		return 2;//ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½Ã¹ï¿½
 	}
 }  
 

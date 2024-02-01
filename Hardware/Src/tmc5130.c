@@ -17,7 +17,7 @@ void TMC5130_Init(void)
 { 
 //	TMC_ENN(0);//���ʹ��
 	//delay_ms(200);
-    vTaskDelay(200 / portTICK_PERIOD_MS);
+    vTaskDelay(200/ portTICK_PERIOD_MS);
 
 	TMC5130_Write(0x81,0x00000001);//reset
 	TMC5130_Write(0xec,0x000300c3);// CHOPCONF: vsense=1,TOFF=3, HSTRT=4, HEND=1, TBL=2, CHM=0 (spreadCycle)

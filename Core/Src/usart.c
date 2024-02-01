@@ -67,8 +67,8 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);//开启空闲中断
-    __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);//开启接收中断
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);//�?启空闲中�?
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);//�?启接收中�?
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -127,7 +127,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     __HAL_LINKDMA(uartHandle,hdmatx,hdma_usart1_tx);
 
     /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 3, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
 
