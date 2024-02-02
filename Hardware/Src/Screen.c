@@ -92,7 +92,7 @@ void processData(PCTRL_MSG msg)
 		data = data / 80; // 设定压力
 						  // HAL_UART_Transmit(&huart1, (uint8_t *)&data, sizeof(uint16_t), 0xFFFF);
 		ForceRawSet = data * HX711_SCALE_FACTOR;
-		MotorCompareState = 0;
+		MotorCompareState = 0;//电机状态设置为一直前进
 		xEventGroupSetBits(All_EventHandle, xBitsToSet1); // 设定脉动任务开启标志位
 		break;
 
@@ -100,8 +100,7 @@ void processData(PCTRL_MSG msg)
 	case 0x1034:
 		ScreenWorkModeQuit(0x07);
 		xEventGroupClearBits(All_EventHandle, xBitsToSet1); // 清除脉动任务开启标志位
-		xEventGroupClearBits(All_EventHandle, SW_BIT_1);
-		HAL_TIM_Base_Stop_IT(&htim7);
+		xEventGroupClearBits(All_EventHandle, SW_BIT_1);//清除按键
 		xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4); 
 		//xQueueReset(Force_QueueHandle);
 		break;
@@ -110,12 +109,8 @@ void processData(PCTRL_MSG msg)
 	case 0x1037:
 		HeatPIDInit(37.0);
 		data = data / 80; // 设定压力
-		 // HAL_UART_Transmit(&huart1, (uint8_t *)&data, sizeof(uint16_t), 0xFFFF);
 		ForceRawSet = data * HX711_SCALE_FACTOR;
-		// WorkMode = 0x02;
 		MotorCompareState = 0;
-		// HeatPIDInit();
-		// TMP114_Init();
 		xEventGroupSetBits(All_EventHandle, Auto_BIT_3); // 设定自动任务开启标志位
 		HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);		 // enable pwm for heating film
 		break;
@@ -124,8 +119,7 @@ void processData(PCTRL_MSG msg)
 	case 0x1038:
 		ScreenWorkModeQuit(0x0C);
 		xEventGroupClearBits(All_EventHandle, Auto_BIT_3|SW_BIT_1); // 清除脉动任务开启标志位
-		xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4); 
-		HAL_TIM_Base_Stop_IT(&htim7);
+		xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);
 		HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1); // disable pwm for heating film
 		//xQueueReset(Temperature_QueueHandle);
 		break;

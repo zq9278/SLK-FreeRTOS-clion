@@ -37,7 +37,6 @@ uint8_t PID_realize(PID_typedef *pid,float temp_val)
 
 void start_Heat(osMessageQueueId_t Temperature_QueueHandle){
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
-	 // printf("预加热模式\n");
       TMP114_Read(0x00, EyeTmpRaw);    // obtain original value of the current temperature sensor by reading the iic
       EyeTmp = TmpRaw2Ture(EyeTmpRaw); // convert raw temperature data
       xQueueSend(Temperature_QueueHandle, &EyeTmp, 0);

@@ -266,6 +266,8 @@ void AppMotor_Task(void *argument)
             {
                 HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_SET); // 使能tmc电机引脚
                 xEventGroupClearBits(All_EventHandle, Reset_Motor_BIT_4);
+                HAL_TIM_Base_Stop_IT(&htim7);
+
             }
         }
         // TMC5130_Write(0xa0, 1); // 设置tmc电机方向向前
@@ -288,7 +290,7 @@ void APP_HeatTask(void *argument)
   /* USER CODE BEGIN APP_HeatTask */
   /* Infinite loop */
     EventBits_t Heat_Event_Bit;
-    // HeatPIDInit();
+     //HeatPIDInit();
     for (;;)
     {
         Heat_Event_Bit = xEventGroupWaitBits(
@@ -328,12 +330,7 @@ void App_Uart_ProcessTask(void *argument)
 {
   /* USER CODE BEGIN App_Uart_ProcessTask */
   /* Infinite loop */
-    extern TIM_HandleTypeDef htim16;
-    // HAL_TIM_Base_Start(&htim16);
-    // HAL_TIM_PWM_Start(&htim16, LED_TIM_CHANNEL);
-    __HAL_TIM_ENABLE_DMA(&htim16, TIM_DMA_CC1);
-    // sendColor(0, 0, 25);
-    // UCS1903Show();
+
     EventBits_t Data_Event_Bit;
     for (;;)
     {
@@ -345,25 +342,25 @@ void App_Uart_ProcessTask(void *argument)
                 100                                               // Whether to wait indefinitely
                 // portMAX_DELAY    // Whether to wait indefinitely
         );
-        vTaskDelay(200);
+        vTaskDelay(50);
         if ((Data_Event_Bit & Heat_BIT_0) != 0)
         { // printf("打开热敷数据");
             ProcessTemperatureData(0x0302);
-            vTaskDelay(10);
+            //vTaskDelay(10);
         }
         if (((Data_Event_Bit & Motor_BIT_2) != 0) && ((Data_Event_Bit & SW_BIT_1) != 0))
         { // printf("打开压力数据");
             ProcessForceData(0x0702);
-            vTaskDelay(10);
+            //vTaskDelay(10);
         }
         if ((Data_Event_Bit & Auto_BIT_3) != 0)
         { // printf("打开自动数据");
             ProcessTemperatureData(0x0C03);
-            vTaskDelay(10);
+            //vTaskDelay(10);
             if ((Data_Event_Bit & SW_BIT_1) != 0)
             {
                 ProcessForceData(0x0C04);
-                vTaskDelay(10);
+                //vTaskDelay(10);
             }
         }
       if (xQueueReceive(dataQueueHandle, &uart_rx_data, 100)) // 阻塞接受队列消息
@@ -385,17 +382,22 @@ void App_Uart_ProcessTask(void *argument)
 void App_Charge_Task(void *argument)
 {
   /* USER CODE BEGIN App_Charge_Task */
-    BQ25895_Init(); // 充电芯片初始??
-    BQ27441_Init(); // 电量芯片初始??
-    AT24CXX_Init(); // 非易失???存储芯片初始化
+    BQ25895_Init(); // 充电芯片初始化
+    BQ27441_Init(); // 电量芯片初始化
+    AT24CXX_Init(); // 非易失性存储芯片初始化
+    PWM_WS2812B_Init();
+    UCS1903Show();
+
+
     /* Infinite loop */
     for (;;)
     {
-        BQ25895_MultiRead(BQ25895Reg); // 读取充电状???
+        BQ25895_MultiRead(BQ25895Reg); // 读取充电状态
         PowerStateUpdate();
         BQ27441_MultiRead(&BQ27441);              // 获取电量计数
         ScreenUpdateSOC(BQ27441.SOC, PowerState); // 电量上传
         vTaskDelay(200);
+        PWM_WS2812B_Write_24Bits(4,0x0000ff);
     }
   /* USER CODE END App_Charge_Task */
 }

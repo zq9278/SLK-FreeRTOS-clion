@@ -8,5 +8,5 @@
 // void sendBit(uint8_t bit);
 
  void UCS1903Show(void);
-
-void sendColor(uint8_t red, uint8_t green, uint8_t blue);
+void PWM_WS2812B_Init(void);
+void PWM_WS2812B_Write_24Bits(uint16_t num,uint32_t GRB_Data);

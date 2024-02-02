@@ -80,7 +80,6 @@ extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_tim16_ch1;
 extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim14;
-extern TIM_HandleTypeDef htim16;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
 extern TIM_HandleTypeDef htim6;
@@ -302,20 +301,6 @@ void TIM14_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM16 global interrupt.
-  */
-void TIM16_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM16_IRQn 0 */
-
-  /* USER CODE END TIM16_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim16);
-  /* USER CODE BEGIN TIM16_IRQn 1 */
-
-  /* USER CODE END TIM16_IRQn 1 */
-}
-
-/**
   * @brief This function handles I2C1 event global interrupt / I2C1 wake-up interrupt through EXTI line 23.
   */
 void I2C1_IRQHandler(void)
@@ -416,92 +401,24 @@ void USART1_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
 {
-    //BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    //EventBits_t xBits = xEventGroupGetBitsFromISR(All_EventHandle);
-    // if (((xBits & Heat_BIT_0) != 0) || ((xBits & Motor_BIT_2) != 0) || ((xBits & Auto_BIT_3) != 0)) // 鐢垫満鎴栵拷?锟藉姞鐑啘鏈変竴涓簨浠跺彂鐢熶簡锛岄兘鍙互杩涘叆锟?????????????鍏虫娴嬬姸锟?????????????
-    // {
-    // if (HAL_GPIO_ReadPin(SW_CNT_GPIO_Port, SW_CNT_Pin) == 0) // 鐗╃悊锟?????????????鍏虫槸鍚﹁鎸変笅
-    // {
-    //   // 璁剧疆浜嬩欢缁勭殑鏍囧織锟?????????????
-    //   if (((xBits & SW_BIT_1) == 0) && (((xBits & Heat_BIT_0) != 0) || ((xBits & Motor_BIT_2) != 0) || ((xBits & Auto_BIT_3) != 0))) // 锟?????????????鍏充簨浠舵槸鍚﹀彂锟?????????????
-    //   {
-    //     // 濡傛灉SW_BIT_1褰撳墠鏄竻闄ょ殑锛岄偅涔堣缃畠
-    //     // xEventGroupSetBitsFromISR(All_EventHandle, SW_BIT_1, pdFALSE);
-    //     xEventGroupSetBitsFromISR(All_EventHandle, SW_BIT_1, &xHigherPriorityTaskWoken); // 璁剧疆锟?????????????鍏充簨浠跺彂锟?????????????
-
-    //     if ((xBits & Motor_BIT_2) != 0)
-    //     {
-    //       ScreenTimerStart(0x07);
-    //       HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 浣胯兘tmc鐢垫満寮曡剼
-    //       TMC5130_Write(0xa7, 0x8000);
-    //       TMC5130_Write(0xa0, 1);
-    //     }
-    //     if (((xBits & Heat_BIT_0) != 0))
-    //     {
-    //       ScreenTimerStart(0x03);
-    //     }
-    //     if (((xBits & Auto_BIT_3) != 0))
-    //     {
-    //       HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 浣胯兘tmc鐢垫満寮曡剼
-    //       TMC5130_Write(0xa7, 0x8000);
-    //       TMC5130_Write(0xa0, 1);
-    //       ScreenTimerStart(0x0C);
-    //     }
-    //   }
-    //   else
-    //   {
-    //     // 濡傛灉SW_BIT_1褰撳墠鏄缃殑锛岄偅涔堟竻闄ゅ畠
-
-    //     xEventGroupClearBits(All_EventHandle, SW_BIT_1);
-    //     if ((xBits & Heat_BIT_0) != 0)
-    //     {
-    //       ScreenWorkModeQuit(0x03);
-    //       xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 娓呴櫎鍔犵儹浜嬩欢
-    //       xQueueReset(Temperature_QueueHandle);
-    //     }
-    //     if ((xBits & Motor_BIT_2) != 0)
-    //     {
-    //       ScreenWorkModeQuit(0x07);
-    //       xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
-    //       MotorChecking();
-    //       xQueueReset(Force_QueueHandle);
-    //     }
-    //     if ((xBits & Auto_BIT_3) != 0)
-    //     {
-    //       ScreenWorkModeQuit(0x0C);
-    //       xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
-    //       MotorChecking();
-    //       xQueueReset(Temperature_QueueHandle);
-    //       xQueueReset(Force_QueueHandle);
-    //     }
-    //   }
-    // }
-
-
     TickType_t xCurrentTime = xTaskGetTickCountFromISR();
     EventBits_t xBits = xEventGroupGetBitsFromISR(All_EventHandle);
-
-    //if (GPIO_Pin == SW_CNT_Pin) // 鍋囪 SW_CNT_Pin 鏄綘鐨勬寜閿搴旂殑 GPIO pin
     if (HAL_GPIO_ReadPin(SW_CNT_GPIO_Port, SW_CNT_Pin) == 0) // 鍋囪 SW_CNT_Pin 鏄綘鐨勬寜閿搴旂殑 GPIO pin
     {
-        // 锟?????鏌ヤ袱娆℃寜閿簨浠朵箣闂寸殑鏃堕棿锟?????
+        // 检查两次按键事件之间的时间
         if (xCurrentTime - xLastWakeTime >= pdMS_TO_TICKS(50))
         {
-            // 鏇存柊涓婁竴娆℃寜閿椂锟?????
+            // 更新上一次按键时间
             xLastWakeTime = xCurrentTime;
-
-            // 璁剧疆浜嬩欢缁勭殑鏍囧織锟?????????????
             if (((xBits & SW_BIT_1) == 0) && (((xBits & Heat_BIT_0) != 0) || ((xBits & Motor_BIT_2) != 0) || ((xBits & Auto_BIT_3) != 0)))
             {
-                // 濡傛灉SW_BIT_1褰撳墠鏄竻闄ょ殑锛岄偅涔堣缃畠
                 // xEventGroupSetBitsFromISR(All_EventHandle, SW_BIT_1, pdFALSE);
                 //xEventGroupSetBitsFromISR(All_EventHandle, SW_BIT_1, &xHigherPriorityTaskWoken);
-                xEventGroupSetBits(All_EventHandle, SW_BIT_1); // 璁剧疆寮?鍏充簨浠跺彂鐢?
-
+                xEventGroupSetBits(All_EventHandle, SW_BIT_1); // 设置开关事件发生
                 if ((xBits & Motor_BIT_2) != 0)
                 {
                     ScreenTimerStart(0x07);
-                    HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 浣胯兘tmc鐢垫満寮曡剼
+                    HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 电机失能
                     TMC5130_Write(0xa7, 0x8000);
                     TMC5130_Write(0xa0, 1);
                 }
@@ -514,31 +431,27 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
                 if (((xBits & Auto_BIT_3) != 0))
                 {
                     //HeatPIDInit(42.5);
-                    HeatPIDInit(41.0);
-                    HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 浣胯兘tmc鐢垫満寮曡剼
+                    HeatPIDInit(41.0);//加热设置温度
+                    HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 电机失能
                     TMC5130_Write(0xa7, 0x8000);
                     TMC5130_Write(0xa0, 1);
                     ScreenTimerStart(0x0C);
                 }
             }
-            if (((xBits & SW_BIT_1) != 0) && (((xBits & Heat_BIT_0) != 0) || ((xBits & Motor_BIT_2) != 0) || ((xBits & Auto_BIT_3) != 0))) // 寮?鍏充簨浠舵槸鍚﹀彂鐢?
+            if (((xBits & SW_BIT_1) != 0) && (((xBits & Heat_BIT_0) != 0) || ((xBits & Motor_BIT_2) != 0) || ((xBits & Auto_BIT_3) != 0))) //按钮按下且热敷脉动自动之一
             {
-                // 濡傛灉SW_BIT_1褰撳墠鏄缃殑锛岄偅涔堟竻闄ゅ畠
-                xEventGroupClearBits(All_EventHandle, SW_BIT_1);
-
+                xEventGroupClearBits(All_EventHandle, SW_BIT_1);//清除按键
+//根据对应事件清除或结束事件
                 if ((xBits & Heat_BIT_0) != 0)
                 {
                     ScreenWorkModeQuit(0x03);
-                    xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 娓呴櫎鍔犵儹浜嬩欢
+                    xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 加热事件清除
                     HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
-                    //xQueueReset(Temperature_QueueHandle);
                 }
                 if ((xBits & Motor_BIT_2) != 0)
                 {xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
                     xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);
                     ScreenWorkModeQuit(0x07);
-                    HAL_TIM_Base_Stop_IT(&htim7);
-                    //xQueueReset(Force_QueueHandle);
                 }
                 if ((xBits & Auto_BIT_3) != 0)
                 {
@@ -546,7 +459,6 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
                     xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
                     HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
                     xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);
-
                     //xQueueReset(Temperature_QueueHandle);
                     //xQueueReset(Force_QueueHandle);
                 }

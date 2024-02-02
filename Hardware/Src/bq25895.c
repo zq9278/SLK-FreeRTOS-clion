@@ -1,14 +1,8 @@
 #include "bq25895.h"
-
-
 uint8_t BQ25895Reg[21];
 uint8_t BQ25895TempData[1];
 uint8_t PowerState;
-
-
 extern I2C_HandleTypeDef hi2c1;
-
-
 
 void BQ25895_Init(void)
 { 
@@ -19,7 +13,6 @@ void BQ25895_Init(void)
 	BQ25895_Write(0x07,0x8d);//¹Ø±Õ¿´ÃÅ¹·
 }  
 
-uint8_t temp1;
 void BQ25895_Read(uint8_t ReadAddr,uint8_t* pBuffer)   
 { 	
 	while(hi2c1.State != HAL_I2C_STATE_READY){;}
@@ -42,7 +35,7 @@ void BQ25895_Write(uint8_t WriteAddr,uint8_t WriteData)
 void PowerStateUpdate(void)
 {
 	uint8_t CHRG_STAT;
-          	CHRG_STAT=(BQ25895Reg[0x0b]&0x18)>>3;
+    CHRG_STAT=(BQ25895Reg[0x0b]&0x18)>>3;
 			 
 	if(CHRG_STAT==1||CHRG_STAT==2)//Pre-charge Fast Charging
 	{
