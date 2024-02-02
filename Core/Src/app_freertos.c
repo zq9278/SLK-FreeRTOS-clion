@@ -49,7 +49,6 @@ uart_data uart_rx_data;
 extern int32_t ForceRawOffset;
 uint8_t MotorCompareState = 0;
 int32_t Force_Q;
-int32_t Force_R_Q;
 
 extern int32_t ForceRawSet;
 int32_t ForceRawActual;
@@ -61,7 +60,6 @@ extern I2C_HandleTypeDef hi2c2;
 extern BQ27441_typedef BQ27441;
 extern uint8_t PowerState;
 extern uint8_t BQ25895Reg[21];
-extern TIM_HandleTypeDef htim16;
 /* USER CODE END Variables */
 /* Definitions for Motor_Task */
 osThreadId_t Motor_TaskHandle;
@@ -82,7 +80,7 @@ osThreadId_t Uart_ProcessTasHandle;
 const osThreadAttr_t Uart_ProcessTas_attributes = {
   .name = "Uart_ProcessTas",
   .priority = (osPriority_t) osPriorityHigh,
-  .stack_size = 130 * 4
+  .stack_size = 128 * 4
 };
 /* Definitions for Charge_Task */
 osThreadId_t Charge_TaskHandle;
@@ -135,15 +133,15 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-    /* add mutexes, ... */
+  /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-    /* add semaphores, ... */
+  /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
-    /* start timers, add new ones, ... */
+  /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
@@ -154,10 +152,10 @@ void MX_FREERTOS_Init(void) {
   Temperature_QueueHandle = osMessageQueueNew (10, sizeof(float), &Temperature_Queue_attributes);
 
   /* creation of Force_Queue */
-  Force_QueueHandle = osMessageQueueNew (10, sizeof(int32_t), &Force_Queue_attributes);
+  Force_QueueHandle = osMessageQueueNew (10, sizeof(uint32_t), &Force_Queue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
-    /* add queues, ... */
+  /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -174,7 +172,7 @@ void MX_FREERTOS_Init(void) {
   Charge_TaskHandle = osThreadNew(App_Charge_Task, NULL, &Charge_Task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-    /* add threads, ... */
+  /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* Create the event(s) */
@@ -182,7 +180,7 @@ void MX_FREERTOS_Init(void) {
   All_EventHandle = osEventFlagsNew(&All_Event_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
-    /* add events, ... */
+  /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
 
 }
@@ -198,99 +196,83 @@ void AppMotor_Task(void *argument)
 {
   /* USER CODE BEGIN AppMotor_Task */
     EventBits_t Motor_Event_Bit;
-    uint8_t ReadData[4];
+    uint8_t Motor_Reset_Position_ReadData[4];
     TMC5130_Init();
-    xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4); // è®¾å®šè„‰åŠ¨ä»»åŠ¡ï¿½??????å¯æ ‡å¿—ä½
-    for (;;) {
+    HX711_Init();
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+    vTaskDelay(200);
+    xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);
+    uint32_t Force_Raw_Data[3];
+    for (;;)
+    {
+
         Motor_Event_Bit = xEventGroupWaitBits(
                 All_EventHandle,                     // Event group handle
-                Motor_BIT_2 | Auto_BIT_3 | SW_BIT_1, // flag bits to wait for
+                Motor_BIT_2 | Auto_BIT_3 | SW_BIT_1|Reset_Motor_BIT_4, // flag bits to wait for
                 pdFALSE,                             // clear these bits when the function responds
                 pdFALSE,                             // Whether to wait for all flag bits
                 100                                  // Whether to wait indefinitely
                 // portMAX_DELAY    // Whether to wait indefinitely
         );
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        if ((((Motor_Event_Bit & Motor_BIT_2) != 0) || ((Motor_Event_Bit & Auto_BIT_3) != 0)) &&
-            ((Motor_Event_Bit & SW_BIT_1) == 0)) // è„‰åŠ¨æˆ–è‡ªåŠ¨äº‹ä»¶å‘ç”Ÿï¼ŒæŒ‰é’®äº‹ä»¶æ²¡å‘ç”Ÿï¼ˆç”µæœºé¢„æ¨¡å¼ï¼‰
-        {
-            vTaskDelay(200 / portTICK_PERIOD_MS);
 
-            // printf("ç”µæœºé¢„å¯åŠ¨æ¨¡ï¿½??????");
+        if ((((Motor_Event_Bit & Motor_BIT_2) != 0) || ((Motor_Event_Bit & Auto_BIT_3) != 0)) && ((Motor_Event_Bit & SW_BIT_1) == 0)) // Âö¶¯»ò???×Ô¶¯ÊÂ¼þ·¢Éú£¬°´Å¥ÊÂ¼þÃ»·¢Éú£¨µç»úÔ¤Ä£Ê½£©
+        {
+            vTaskDelay(200);
+            // printf("µç»úÔ¤Ä£??");
         }
-            // else if (((Motor_Event_Bit & (Motor_BIT_2 | SW_BIT_1)) == (Motor_BIT_2 | SW_BIT_1)) || (Motor_Event_Bit & (Auto_BIT_3 | SW_BIT_1)) == (Auto_BIT_3 | SW_BIT_1)) // è„‰åŠ¨æˆ–è‡ªåŠ¨äº‹ä»¶å‘ç”Ÿï¼ŒæŒ‰é’®äº‹ä»¶å‘ç”Ÿï¼ˆæ­£å¼è„‰åŠ¨æ¨¡å¼å¯åŠ¨ï¼‰
-        else if ((((Motor_Event_Bit & Motor_BIT_2) != 0 || (Motor_Event_Bit & Auto_BIT_3)) != 0) &&
-                 ((Motor_Event_Bit & SW_BIT_1) != 0)) // è„‰åŠ¨æˆ–è‡ªåŠ¨äº‹ä»¶å‘ç”Ÿï¼ŒæŒ‰é’®äº‹ä»¶å‘ç”Ÿï¼ˆæ­£å¼è„‰åŠ¨æ¨¡å¼å¯åŠ¨ï¼‰
+            // else if (((Motor_Event_Bit & (Motor_BIT_2 | SW_BIT_1)) == (Motor_BIT_2 | SW_BIT_1)) || (Motor_Event_Bit & (Auto_BIT_3 | SW_BIT_1)) == (Auto_BIT_3 | SW_BIT_1)) // Âö¶¯»ò???×Ô¶¯ÊÂ¼þ·¢Éú£¬°´Å¥ÊÂ¼þ·¢Éú£¨ÕýÊ½Âö¶¯Ä£Ê½Æô¶¯£©
+        else if ((((Motor_Event_Bit & Motor_BIT_2) != 0 || (Motor_Event_Bit & Auto_BIT_3)) != 0) && ((Motor_Event_Bit & SW_BIT_1) != 0)) // Âö¶¯»ò???×Ô¶¯ÊÂ¼þ·¢Éú£¬°´Å¥ÊÂ¼þ·¢Éú£¨ÕýÊ½Âö¶¯Ä£Ê½Æô¶¯£©
         {
-//            vTaskDelay(50/portTICK_PERIOD_MS);
-//            ForceRawActual = HX711_Read();
-//            if ((ForceRawActual >= 500000) && (MotorCompareState == 0))
-//            {
-//                //HAL_TIM_Base_Start_IT(&htim7);
-//                MotorCompareState = 1;
-//            }
-//            if((ForceRawActual <= 300) && (MotorCompareState != 0)){
-//                MotorCompareState = 0;
-//                TMC5130_Write(0xa7, 0x8000); // æš´åŠ›ï¿½??????å›žåŽå‰è¿›çš„ï¿½?ï¿½åº¦
-//                TMC5130_Write(0xa0, 1);// æš´åŠ›ï¿½??????å›žåŽè¿åŠ¨çš„æ–¹ï¿½??????
-//            }
-//            switch (MotorCompareState)
-//            {
-//                case 1:
-//                    MotorCompare(ForceRawOffset + ForceRawSet, ForceRawActual);
-//                    vTaskDelay(10/portTICK_PERIOD_MS);
-//                    break;
-//                case 2:
-//                    TMC5130_Write(0xa7, 0x8000); // æ²»ç–—é˜¶æ®µçš„å›žï¿½??????é€Ÿåº¦
-//                    TMC5130_Write(0xa0, 2);
-//                    vTaskDelay(10/portTICK_PERIOD_MS);
-//                    break;
-//                default:
-//                    break;
-//            }
-//            Force_Q = (ForceRawActual - ForceRawOffset < 0) ? 0 : (ForceRawActual - ForceRawOffset);
-//            Limit(Force_Q,0,ForceRawSet+82617);
-//            xQueueSend(Force_QueueHandle, &Force_Q, 0);
-            if (xQueueReceive(Force_QueueHandle, &Force_R_Q, 10)) // é˜»å¡žæŽ¥å—é˜Ÿåˆ—æ¶ˆæ¯
-            {
-                if ((Force_R_Q >= 500000) && (MotorCompareState == 0)) {
-                    //HAL_TIM_Base_Start_IT(&htim7);
-                    MotorCompareState = 1;
-                }
-                if ((Force_R_Q <= 300) && (MotorCompareState != 0)) {
-                    MotorCompareState = 0;
-                    TMC5130_Write(0xa7, 0x8000); // æš´åŠ›ï¿½??????å›žåŽå‰è¿›çš„ï¿½?ï¿½åº¦
-                    TMC5130_Write(0xa0, 1);// æš´åŠ›ï¿½??????å›žåŽè¿åŠ¨çš„æ–¹ï¿½??????
-                }
-                switch (MotorCompareState) {
-                    case 1:
-                        MotorCompare(ForceRawOffset + ForceRawSet, Force_R_Q);
-                        vTaskDelay(10 / portTICK_PERIOD_MS);
-                        break;
-                    case 2:
-                        TMC5130_Write(0xa7, 0x8000); // æ²»ç–—é˜¶æ®µçš„å›žï¿½??????é€Ÿåº¦
-                        TMC5130_Write(0xa0, 2);
-                        vTaskDelay(10 / portTICK_PERIOD_MS);
-                        break;
-                    default:
-                        break;
-                }
-
+            vTaskDelay(50);
+            // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+            for (int i = 0; i < 3; ++i) {
+                Force_Raw_Data[i] = HX711_Read();
             }
-
-
-        } else if ((Motor_Event_Bit & Reset_Motor_BIT_4) != 0) {
-            HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // ä½¿èƒ½tmcç”µæœºå¼•è„š
+            ForceRawActual=processFilter_force(Force_Raw_Data);
+            //ForceRawActual = HX711_Read();
+            if ((ForceRawActual >= 500000) && (MotorCompareState == 0))
+            {
+                HAL_TIM_Base_Start_IT(&htim7);
+                MotorCompareState = 1;
+            } else if((ForceRawActual <= 300) && (MotorCompareState != 0)){
+                TMC5130_Write(0xa7, 0x8000); // ÖÎÁÆ½×¶ÎµÄ»Ø??????????ËÙ¶È
+                TMC5130_Write(0xa0, 1);
+                MotorCompareState = 0;
+            }
+            switch (MotorCompareState)
+            {
+                case 1:
+                    MotorCompare(ForceRawOffset + ForceRawSet, ForceRawActual);
+                    vTaskDelay(10);
+                    break;
+                case 2:
+                    TMC5130_Write(0xa7, 0x6000); // ÖÎÁÆ½×¶ÎµÄ»Ø??????????ËÙ¶È
+                    TMC5130_Write(0xa0, 2);
+                    vTaskDelay(10);
+                    break;
+                default:
+                    break;
+            }
+            Force_Q = (ForceRawActual - ForceRawOffset < 0) ? 0 : (ForceRawActual - ForceRawOffset);
+            Limit(Force_Q,0,ForceRawSet+82617);
+            xQueueSend(Force_QueueHandle, &Force_Q, 0);
+        }
+        else if ((Motor_Event_Bit & Reset_Motor_BIT_4) != 0)
+        {HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // Ê¹ÄÜtmcµç»úÒý½Å
             TMC5130_Write(0xa7, 0x10000);
             TMC5130_Write(0xa0, 2);
-            TMC5130_Read(0x04, ReadData); // ç»§ç»­è¯»ä½ç½®å¯„å­˜å™¨
-            if ((ReadData[3] & 0x02) != 0x02) {
-                HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_SET); // ä½¿èƒ½tmcç”µæœºå¼•è„š
+            TMC5130_Read(0x04, Motor_Reset_Position_ReadData); // ¼ÌÐø¶ÁÎ»ÖÃ¼Ä´æÆ÷
+            if ((Motor_Reset_Position_ReadData[3] & 0x02) != 0x02)
+            {
+                HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_SET); // Ê¹ÄÜtmcµç»úÒý½Å
                 xEventGroupClearBits(All_EventHandle, Reset_Motor_BIT_4);
             }
         }
+        // TMC5130_Write(0xa0, 1); // ÉèÖÃtmcµç»ú·½ÏòÏòÇ°
+        // vTaskDelay(1000);
+        // TMC5130_Write(0xa0, 2);
+        // vTaskDelay(1000);
     }
-
   /* USER CODE END AppMotor_Task */
 }
 
@@ -304,10 +286,11 @@ void AppMotor_Task(void *argument)
 void APP_HeatTask(void *argument)
 {
   /* USER CODE BEGIN APP_HeatTask */
-    /* Infinite loop */
+  /* Infinite loop */
     EventBits_t Heat_Event_Bit;
     // HeatPIDInit();
-    for (;;) {
+    for (;;)
+    {
         Heat_Event_Bit = xEventGroupWaitBits(
                 All_EventHandle,                    // Event group handle
                 Heat_BIT_0 | Auto_BIT_3 | SW_BIT_1, // flag bits to wait for
@@ -316,26 +299,21 @@ void APP_HeatTask(void *argument)
                 100                                 // Whether to wait indefinitely
                 // portMAX_DELAY                      // Whether to wait indefinitely
         );
-        if ((((Heat_Event_Bit & Heat_BIT_0) != 0) || ((Heat_Event_Bit & Auto_BIT_3) != 0)) &&
-            ((Heat_Event_Bit & SW_BIT_1) == 0)) {
-            // printf("é¢„åŠ çƒ­æ¨¡å¼\n");
-
-            start_Heat(Temperature_QueueHandle);
-            //HAL_I2C_DeInit(&hi2c2);
-            vTaskDelay(200 / portTICK_PERIOD_MS);
-        } else if (((Heat_Event_Bit & (Heat_BIT_0 | SW_BIT_1)) == (Heat_BIT_0 | SW_BIT_1)) ||
-                   ((Heat_Event_Bit & (Auto_BIT_3 | SW_BIT_1)) ==
-                    (Auto_BIT_3 | SW_BIT_1))) // åŠ çƒ­æˆ–ï¿½?ï¿½è‡ªåŠ¨äº‹ä»¶å‘ç”Ÿï¼ŒæŒ‰é’®äº‹ä»¶å‘ç”Ÿï¼ˆæ­£å¼åŠ çƒ­æ¨¡å¼ï¿½?
+        // if ((((Heat_Event_Bit & Heat_BIT_0) || ((Heat_Event_Bit & Auto_BIT_3) != 0)) != 0) && ((Heat_Event_Bit & SW_BIT_1) == 0)) // ¼ÓÈÈ»ò×Ô¶¯ÊÂ¼þ·¢Éú£¬°´Å¥ÊÂ¼þÃ»·¢Éú£¨Ô¤ÈÈÄ£Ê½£©
+        if ((((Heat_Event_Bit & Heat_BIT_0) != 0) || ((Heat_Event_Bit & Auto_BIT_3) != 0)) && ((Heat_Event_Bit & SW_BIT_1) == 0))
         {
-            // printf("æ­£å¼åŠ çƒ­æ¨¡å¼");
+             // printf("Ô¤¼ÓÈÈÄ£Ê½\n");
             start_Heat(Temperature_QueueHandle);
-            vTaskDelay(200 / portTICK_PERIOD_MS);
-        } else if ((((Heat_Event_Bit & Heat_BIT_0) == 0) || ((Heat_Event_Bit & Auto_BIT_3) == 0)) &&
-                   ((Heat_Event_Bit & SW_BIT_1) == 0)) {
-            vTaskDelay(200 / portTICK_PERIOD_MS);
+            vTaskDelay(20);
         }
+        else if (((Heat_Event_Bit & (Heat_BIT_0 | SW_BIT_1)) == (Heat_BIT_0 | SW_BIT_1)) || ((Heat_Event_Bit & (Auto_BIT_3 | SW_BIT_1)) == (Auto_BIT_3 | SW_BIT_1))) // ¼ÓÈÈ»ò???×Ô¶¯ÊÂ¼þ·¢Éú£¬°´Å¥ÊÂ¼þ·¢Éú£¨ÕýÊ½¼ÓÈÈÄ£Ê½£©
+        {
+            // printf("ÕýÊ½¼ÓÈÈÄ£Ê½");
+            start_Heat(Temperature_QueueHandle);
+            vTaskDelay(200);
+        }
+        vTaskDelay(200);
     }
-
   /* USER CODE END APP_HeatTask */
 }
 
@@ -349,17 +327,16 @@ void APP_HeatTask(void *argument)
 void App_Uart_ProcessTask(void *argument)
 {
   /* USER CODE BEGIN App_Uart_ProcessTask */
-    /* Infinite loop */
-
+  /* Infinite loop */
+    extern TIM_HandleTypeDef htim16;
     // HAL_TIM_Base_Start(&htim16);
     // HAL_TIM_PWM_Start(&htim16, LED_TIM_CHANNEL);
     __HAL_TIM_ENABLE_DMA(&htim16, TIM_DMA_CC1);
     // sendColor(0, 0, 25);
     // UCS1903Show();
     EventBits_t Data_Event_Bit;
-
-    for (;;) {
-
+    for (;;)
+    {
         Data_Event_Bit = xEventGroupWaitBits(
                 All_EventHandle,                                  // Event group handle
                 Heat_BIT_0 | Auto_BIT_3 | Motor_BIT_2 | SW_BIT_1, // flag bits to wait for
@@ -368,30 +345,33 @@ void App_Uart_ProcessTask(void *argument)
                 100                                               // Whether to wait indefinitely
                 // portMAX_DELAY    // Whether to wait indefinitely
         );
-        //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        if ((Data_Event_Bit & Heat_BIT_0) != 0) { // printf("æ‰“å¼€çƒ­æ•·æ•°æ®");
+        vTaskDelay(200);
+        if ((Data_Event_Bit & Heat_BIT_0) != 0)
+        { // printf("´ò¿ªÈÈ·óÊý¾Ý");
             ProcessTemperatureData(0x0302);
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+            vTaskDelay(10);
         }
-        if (((Data_Event_Bit & Motor_BIT_2) != 0) && ((Data_Event_Bit & SW_BIT_1) != 0)) { // printf("æ‰“å¼€åŽ‹åŠ›æ•°æ®");
+        if (((Data_Event_Bit & Motor_BIT_2) != 0) && ((Data_Event_Bit & SW_BIT_1) != 0))
+        { // printf("´ò¿ªÑ¹Á¦Êý¾Ý");
             ProcessForceData(0x0702);
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+            vTaskDelay(10);
         }
-        if ((Data_Event_Bit & Auto_BIT_3) != 0) { // printf("æ‰“å¼€è‡ªåŠ¨æ•°æ®");
+        if ((Data_Event_Bit & Auto_BIT_3) != 0)
+        { // printf("´ò¿ª×Ô¶¯Êý¾Ý");
             ProcessTemperatureData(0x0C03);
-            vTaskDelay(10 / portTICK_PERIOD_MS);
-            if ((Data_Event_Bit & SW_BIT_1) != 0) {
+            vTaskDelay(10);
+            if ((Data_Event_Bit & SW_BIT_1) != 0)
+            {
                 ProcessForceData(0x0C04);
-                vTaskDelay(10 / portTICK_PERIOD_MS);
+                vTaskDelay(10);
             }
         }
-        if (xQueueReceive(dataQueueHandle, &uart_rx_data, 100)) // é˜»å¡žæŽ¥å—é˜Ÿåˆ—æ¶ˆæ¯
-        {
-            // HAL_UART_Transmit(&huart1, (uint8_t *)&(uart_rx_data.buffer), uart_rx_data.length, 0xFFFF);
-            processData((PCTRL_MSG) uart_rx_data.buffer); // å¤„ç†æŽ¥æ”¶åˆ°çš„æ•°æ®
-        }
-    }
+      if (xQueueReceive(dataQueueHandle, &uart_rx_data, 100)) // ×èÈû½ÓÊÜ¶ÓÁÐÏûÏ¢
+      {
+          // HAL_UART_Transmit(&huart1, (uint8_t *)&(uart_rx_data.buffer), uart_rx_data.length, 0xFFFF);
+          processData((PCTRL_MSG)uart_rx_data.buffer); // ´¦Àí½ÓÊÕµ½µÄÊý¾Ý
+      }
+  }
   /* USER CODE END App_Uart_ProcessTask */
 }
 
@@ -405,45 +385,17 @@ void App_Uart_ProcessTask(void *argument)
 void App_Charge_Task(void *argument)
 {
   /* USER CODE BEGIN App_Charge_Task */
-    BQ25895_Init(); // å……ç”µèŠ¯ç‰‡åˆå§‹ï¿½??????
-    BQ27441_Init(); // ç”µé‡èŠ¯ç‰‡åˆå§‹ï¿½??????
-    AT24CXX_Init(); // éžæ˜“å¤±ï¿½?ï¿½å­˜å‚¨èŠ¯ç‰‡åˆå§‹åŒ–
-
-
-    //EventBits_t Force_Event_Bit;
-    HX711_Init();
-    int32_t tem[3];
-    int32_t force_temp1;
+    BQ25895_Init(); // ³äµçÐ¾Æ¬³õÊ¼??
+    BQ27441_Init(); // µçÁ¿Ð¾Æ¬³õÊ¼??
+    AT24CXX_Init(); // ·ÇÒ×Ê§???´æ´¢Ð¾Æ¬³õÊ¼»¯
     /* Infinite loop */
-    for (;;) {
-        BQ25895_MultiRead(BQ25895Reg); // è¯»å–å……ç”µçŠ¶ï¿½??
+    for (;;)
+    {
+        BQ25895_MultiRead(BQ25895Reg); // ¶ÁÈ¡³äµç×´???
         PowerStateUpdate();
-        BQ27441_MultiRead(&BQ27441);              // èŽ·å–ç”µé‡è®¡æ•°ï¿½?????
-        ScreenUpdateSOC(BQ27441.SOC, PowerState); // ç”µé‡ä¸Šä¼ 
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-//        Force_Event_Bit = xEventGroupWaitBits(
-//                All_EventHandle,                     // Event group handle
-//                Motor_BIT_2 | Auto_BIT_3 | SW_BIT_1, // flag bits to wait for
-//                pdFALSE,                             // clear these bits when the function responds
-//                pdFALSE,                             // Whether to wait for all flag bits
-//                100                                  // Whether to wait indefinitely
-//                // portMAX_DELAY    // Whether to wait indefinitely
-//        );
-        //vTaskDelay(200 / portTICK_PERIOD_MS);
-        //if ((Force_Event_Bit & SW_BIT_1) != 0)// è„‰åŠ¨æˆ–è‡ªåŠ¨äº‹ä»¶å‘ç”Ÿï¼ŒæŒ‰é’®äº‹ä»¶å‘ç”Ÿï¼ˆæ­£å¼è„‰åŠ¨æ¨¡å¼å¯åŠ¨ï¼‰
-        //|| (Force_Event_Bit & Auto_BIT_3)) != 0) ||((Force_Event_Bit & SW_BIT_1) != 0))((Force_Event_Bit & Motor_BIT_2) != 0 )&&
-        {
-            vTaskDelay(50 / portTICK_PERIOD_MS);
-            for (int i = 0; i < 3; ++i) {
-                tem[i] = HX711_Read();
-            }
-            ForceRawActual = processFilter_force(tem);
-            force_temp1 = ForceRawActual - ForceRawOffset;//å½“å‰è¯»å–å€¼å‡åŽ»åˆå§‹åæ‰§ï¿½?ï¿½ï¼Œå¾—åˆ°å®žé™…å€¼ï¼ˆåŽ»çš®ï¿½????
-            Force_Q = (force_temp1 < 0) ? 0 : (force_temp1);//å®žé™…çš„ï¿½?ï¿½å¯èƒ½å­˜åœ¨è´Ÿï¿½????
-            Limit(Force_Q, 0, ForceRawSet + ForceRawOffset);//åŽ»é™¤è¶…è¿‡å±å¹•è®¾å®šï¿½????
-            xQueueSend(Force_QueueHandle, &Force_Q, 0);
-        }
+        BQ27441_MultiRead(&BQ27441);              // »ñÈ¡µçÁ¿¼ÆÊý
+        ScreenUpdateSOC(BQ27441.SOC, PowerState); // µçÁ¿ÉÏ´«
+        vTaskDelay(200);
     }
   /* USER CODE END App_Charge_Task */
 }

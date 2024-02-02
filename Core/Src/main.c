@@ -50,7 +50,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+extern uint8_t MotorCompareState;
+uint8_t counter; // ĺŽćśďż????7çčŽĄć°ĺ¨
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -188,6 +189,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM6) {
     HAL_IncTick();
   }
+  /* USER CODE BEGIN Callback 1 */
+    if (htim == &htim7) // 50ms��ʱ��
+    {
+        counter++;
+        if ((counter == 10) && (MotorCompareState == 2))
+        {
+            MotorCompareState = 1;
+        }
+        if ((counter == 60) && (MotorCompareState == 1))
+        {
+            MotorCompareState = 2;
+            counter = 0;
+        }
+    }
   /* USER CODE BEGIN Callback 1 */
 
   /* USER CODE END Callback 1 */
