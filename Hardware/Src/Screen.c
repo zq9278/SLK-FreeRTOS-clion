@@ -276,7 +276,7 @@ void ScreenUpdateSOC(uint16_t value, uint8_t state)
 	SendBuff[10] = 0xFF;
 	SendBuff[11] = 0xFF;
 HAL_UART_Transmit_DMA(&huart1, SendBuff, 12);
-    vTaskDelay(20 / portTICK_PERIOD_MS);
+    //vTaskDelay(20 / portTICK_PERIOD_MS);
 //	if (value == 100)
 //	{
 //		SendBuff2[0] = 0xEE;

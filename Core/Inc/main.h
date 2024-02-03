@@ -145,6 +145,7 @@ void Error_Handler(void);
 #include "bq27441.h"
 #include "bq25895.h"
 #include "24cxx.h"
+#include "math.h"
 
 #define Heat_BIT_0 (1 << 0)
 #define SW_BIT_1 (1 << 1)

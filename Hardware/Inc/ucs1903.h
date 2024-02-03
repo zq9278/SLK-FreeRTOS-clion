@@ -10,3 +10,4 @@
  void UCS1903Show(void);
 void PWM_WS2812B_Init(void);
 void PWM_WS2812B_Write_24Bits(uint16_t num,uint32_t GRB_Data);
+void loopBreatheEffect(void);
