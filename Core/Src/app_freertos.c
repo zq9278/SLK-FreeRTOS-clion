@@ -378,6 +378,7 @@ void App_Charge_Task(void *argument) {
     PWM_WS2812B_Init();
     UCS1903Show();
     //PWM_WS2812B_Write_24Bits(4,100);
+
     /* Infinite loop */
     for (;;) {
         BQ25895_MultiRead(BQ25895Reg); // ¶ÁÈ¡³äµç×´Ì¬
