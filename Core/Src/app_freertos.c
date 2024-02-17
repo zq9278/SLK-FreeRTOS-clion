@@ -206,7 +206,6 @@ void AppMotor_Task(void *argument) {
     xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);
     uint32_t Force_Raw_Data[3];
     for (;;) {
-
         Motor_Event_Bit = xEventGroupWaitBits(
                 All_EventHandle,                     // Event group handle
                 Motor_BIT_2 | Auto_BIT_3 | SW_BIT_1 | Reset_Motor_BIT_4, // flag bits to wait for
@@ -226,8 +225,8 @@ void AppMotor_Task(void *argument) {
         else if ((((Motor_Event_Bit & Motor_BIT_2) != 0 || (Motor_Event_Bit & Auto_BIT_3)) != 0) &&
                  ((Motor_Event_Bit & SW_BIT_1) != 0)) // 脉动或???自动事件发生，按钮事件发生（正式脉动模式启动）
         {
-            vTaskDelay(50);
-            // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+            //vTaskDelay(1000);
+             HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
             for (int i = 0; i < 3; ++i) {
                 Force_Raw_Data[i] = HX711_Read();
             }
@@ -392,7 +391,7 @@ void App_Charge_Task(void *argument) {
             PWM_WS2812B_Write_24Bits(4, 100);
 
         }
-        //vTaskDelay(20);
+        vTaskDelay(20);
 
     }
     /* USER CODE END App_Charge_Task */
