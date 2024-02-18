@@ -43,7 +43,7 @@ typedef struct __attribute__((packed))
     uint16_t data;                                                                                                                              
 
 } CTRL_MSG, *PCTRL_MSG;
-#define FILTER_SIZE 3//滤波长度
+#define FILTER_SIZE 5//滤波长度
 #define FILTER_SIZE_TEMP 3//滤波长度
 float processFilter(float *buffer);
 uint32_t processFilter_force(uint32_t *buffer);

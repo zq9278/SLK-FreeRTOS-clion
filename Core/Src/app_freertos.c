@@ -227,7 +227,7 @@ void AppMotor_Task(void *argument) {
         {
             //vTaskDelay(1000);
              HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 5; ++i) {
                 Force_Raw_Data[i] = HX711_Read();
             }
             ForceRawActual = processFilter_force(Force_Raw_Data);
@@ -256,6 +256,9 @@ void AppMotor_Task(void *argument) {
             Force_Q = (ForceRawActual - ForceRawOffset < 0) ? 0 : (ForceRawActual - ForceRawOffset);
             Limit(Force_Q, 0, ForceRawSet + 82617);
             xQueueSend(Force_QueueHandle, &Force_Q, 0);
+
+            ProcessForceData(0x0702);
+
         } else if ((Motor_Event_Bit & Reset_Motor_BIT_4) != 0) {
             HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 使能tmc电机引脚
             TMC5130_Write(0xa7, 0x10000);
@@ -343,7 +346,7 @@ void App_Uart_ProcessTask(void *argument) {
             //vTaskDelay(10);
         }
         if (((Data_Event_Bit & Motor_BIT_2) != 0) && ((Data_Event_Bit & SW_BIT_1) != 0)) { // printf("打开压力数据");
-            ProcessForceData(0x0702);
+           // ProcessForceData(0x0702);
             //vTaskDelay(10);
         }
         if ((Data_Event_Bit & Auto_BIT_3) != 0) { // printf("打开自动数据");

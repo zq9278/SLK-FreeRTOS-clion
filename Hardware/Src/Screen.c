@@ -146,7 +146,7 @@ void ProcessTemperatureData(uint16_t work_mode)
 }
 void ProcessForceData(uint16_t work_mode)
 {
-	if (xQueueReceive(Force_QueueHandle, &Force, 10))
+	if (xQueueReceive(Force_QueueHandle, &Force, 1))
 	{
         ScreenUpdateForce(Force, work_mode);
 //		Force_buffer[buffer_index_Force] = Force;
