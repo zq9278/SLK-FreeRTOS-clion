@@ -24,6 +24,8 @@ uint8_t SendBuff[13];
 uint8_t SendBuff2[14];
 int32_t ForceRawSet = 422672; // 屏幕设定的值
 
+double data_Tem;
+
 void processData(PCTRL_MSG msg)
 {									   // HAL_UART_Transmit(&huart1, (uint8_t *)msg, sizeof(CTRL_MSG), 0xFFFF);
 									   //  解决大端小端问题。stm32是大端处理
@@ -89,9 +91,9 @@ void processData(PCTRL_MSG msg)
 
 	/*脉动开始*/
 	case 0x1005:
-		data = data / 80; // 设定压力
+        data_Tem = data / 88.4; // 毫米汞柱换算成牛顿力
 						  // HAL_UART_Transmit(&huart1, (uint8_t *)&data, sizeof(uint16_t), 0xFFFF);
-		ForceRawSet = data * HX711_SCALE_FACTOR;
+		ForceRawSet = (data_Tem / 0.0098)*HX711_SCALE_FACTOR_100;
 		MotorCompareState = 0;//电机状态设置为一直前进
 		xEventGroupSetBits(All_EventHandle, xBitsToSet1); // 设定脉动任务开启标志位
 		break;
@@ -148,15 +150,15 @@ void ProcessForceData(uint16_t work_mode)
 {
 	if (xQueueReceive(Force_QueueHandle, &Force, 1))
 	{
-        ScreenUpdateForce(Force, work_mode);
-//		Force_buffer[buffer_index_Force] = Force;
-//		buffer_index_Force = (buffer_index_Force + 1) % FILTER_SIZE;
-//		if (buffer_index_Force == 0)
-//		{
-//			uint32_t filtered_Force = processFilter_force(Force_buffer);
-//			ScreenUpdateForce(filtered_Force, work_mode);
-//			//ScreenUpdateForce(filtered_Force, 0x0702);
-//		}
+       // ScreenUpdateForce(Force, work_mode);
+		Force_buffer[buffer_index_Force] = Force;
+		buffer_index_Force = (buffer_index_Force + 1) % FILTER_SIZE;
+		if (buffer_index_Force == 0)
+		{
+			uint32_t filtered_Force = processFilter_force(Force_buffer,11);
+			ScreenUpdateForce(filtered_Force, work_mode);
+			//ScreenUpdateForce(filtered_Force, 0x0702);
+		}
 	}
 }
 
@@ -169,12 +171,12 @@ float processFilter(float *buffer)
 	}
 	return sum / FILTER_SIZE_TEMP; // 这里使用简单的平均值滤波
 }
-uint32_t processFilter_force(uint32_t *buffer)
+uint32_t processFilter_force(uint32_t *buffer ,int filter)
 {
 	// 对数组进行排序
-	for (int i = 0; i < FILTER_SIZE - 1; i++)
+	for (int i = 0; i < filter - 1; i++)
 	{
-		for (int j = 0; j < FILTER_SIZE - i - 1; j++)
+		for (int j = 0; j < filter - i - 1; j++)
 		{
 			if (buffer[j] > buffer[j + 1])
 			{
@@ -188,14 +190,14 @@ uint32_t processFilter_force(uint32_t *buffer)
 
 	// 如果 FILTER_SIZE 是奇数，返回中间的值
 	// 如果是偶数，返回中间两个值的平均值
-	if (FILTER_SIZE % 2 != 0)
+	if (filter % 2 != 0)
 	{
 		//Limit(buffer[FILTER_SIZE / 2],min,max) 
-		return buffer[FILTER_SIZE / 2];
+		return buffer[filter / 2];
 	}
 	else
 	{
-		return (buffer[(FILTER_SIZE - 1) / 2] + buffer[FILTER_SIZE / 2]) / 2;
+		return (buffer[(filter - 1) / 2] + buffer[filter / 2]) / 2;
 	}
 }
 
@@ -230,7 +232,7 @@ void ScreenUpdateForce(uint32_t value, uint16_t work_mode)
 {
 	// printf("%u",value);
 
-	uint16_t Forcevalue = (uint16_t)(value / HX711_SCALE_FACTOR * 75);
+	uint16_t Forcevalue = (uint16_t)((value /HX711_SCALE_FACTOR_100)*0.0098*88.4);
 
 	while (hdma_usart1_tx.State != HAL_DMA_STATE_READY)
 		;

@@ -17,7 +17,6 @@ void PWM_WS2812B_Init(void)
     for (int i = 0; i < BREATHE_STEPS; ++i) {
         // 使用正弦函数生成平滑的亮度变化
         //breatheLUT[i] = (uint8_t)((1 + sin(i * 2 * M_PI / BREATHE_STEPS - M_PI / 2)) / 2 * 255);
-
         breatheLUT[i] = (uint8_t) (((1 + sin(i * 2 * M_PI / BREATHE_STEPS - M_PI / 2)) / 2) * (200 - 10) + 10);
     }
 

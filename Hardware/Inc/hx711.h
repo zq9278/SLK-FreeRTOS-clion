@@ -11,10 +11,14 @@
 
 /* 数据缩放因子，根据负载传感器的参数和电压参考调整
  * 变大范围变小*/
-#define HX711_SCALE_FACTOR     84534.474f
-#define HX711_SCALE_FACTOR_10     8453.4474f
-#define HX711_SCALE_FACTOR_100     845.34474f
-//#define HX711_SCALE_FACTOR     10000.0f
+
+//#define HX711_SCALE_FACTOR     84534.474f
+//#define HX711_SCALE_FACTOR_10     8453.4474f
+//#define HX711_SCALE_FACTOR_100     845.34474f
+
+#define HX711_SCALE_FACTOR     80942.474f
+#define HX711_SCALE_FACTOR_10     8094.4474f
+#define HX711_SCALE_FACTOR_100     809.4224f
 
 /* 初始化HX711 */
 void HX711_Init(void);

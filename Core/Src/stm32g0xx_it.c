@@ -418,7 +418,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
                 if ((xBits & Motor_BIT_2) != 0)
                 {
                     ScreenTimerStart(0x07);
-                    HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 电机失能
+                    HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 电机使能
                     TMC5130_Write(0xa7, 0x8000);
                     TMC5130_Write(0xa0, 1);
                 }
