@@ -406,7 +406,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
     if (HAL_GPIO_ReadPin(SW_CNT_GPIO_Port, SW_CNT_Pin) == 0) // 鍋囪 SW_CNT_Pin 鏄綘鐨勬寜閿搴旂殑 GPIO pin
     {
         // 检查两次按键事件之间的时间
-        if (xCurrentTime - xLastWakeTime >= pdMS_TO_TICKS(50))
+        if (xCurrentTime - xLastWakeTime >= pdMS_TO_TICKS(100))
         {
             // 更新上一次按键时间
             xLastWakeTime = xCurrentTime;
@@ -449,8 +449,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
                     HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
                 }
                 if ((xBits & Motor_BIT_2) != 0)
-                {
-                    ScreenWorkModeQuit(0x07);
+                ScreenWorkModeQuit(0x07);
                     xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
                     //vTaskDelay(1000);
                     xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);
@@ -469,5 +468,5 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
             }
         }
     }
-}
+
 /* USER CODE END 1 */

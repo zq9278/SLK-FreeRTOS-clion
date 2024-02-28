@@ -153,6 +153,7 @@ void Error_Handler(void);
 #define Motor_BIT_2 (1 <<2)
 #define Auto_BIT_3 (1 <<3)
 #define Reset_Motor_BIT_4 (1 <<4)
+#define PowerState_BIT_5 (1 <<5)
 
 #define TMP114Address		0x92//xin
 //#define TMP114Address		0x90//lao

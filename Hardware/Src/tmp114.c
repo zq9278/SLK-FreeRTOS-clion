@@ -51,8 +51,8 @@ float TmpRaw2Ture(uint8_t* TmpRawData)
 	//return TmpData*0.0625;
 	return (int)(TmpData * 0.0625);
 
-	// TmpData=(TmpRawData[0]<<8) | TmpRawData[1];
-	// return TmpData*0.0078125;//lao
+//	 TmpData=(TmpRawData[0]<<8) | TmpRawData[1];
+//	 return TmpData*0.0078125;//lao
 
 
 

@@ -3,6 +3,7 @@ uint8_t BQ25895Reg[21];
 uint8_t BQ25895TempData[1];
 uint8_t PowerState;
 extern I2C_HandleTypeDef hi2c1;
+extern EventGroupHandle_t All_EventHandle;
 
 void BQ25895_Init(void)
 { 
@@ -40,14 +41,17 @@ void PowerStateUpdate(void)
 	if(CHRG_STAT==1||CHRG_STAT==2)//Pre-charge Fast Charging
 	{
 		PowerState=1;
+        xEventGroupSetBits(All_EventHandle, PowerState_BIT_5);//快速充电标志位
 	}
 	else if(CHRG_STAT==3)//Charge Termination Done
 	{
 		PowerState=2;
+        xEventGroupClearBits(All_EventHandle, PowerState_BIT_5);
 	}
 	else if(CHRG_STAT==0)//Not Charging
 	{
 		PowerState=3;
+        xEventGroupClearBits(All_EventHandle, PowerState_BIT_5);
 	}
 	//printf("PowerState: %u\n", (unsigned int)PowerState);
 }

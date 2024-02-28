@@ -26,6 +26,7 @@ int32_t ForceRawSet = 422672; // 屏幕设定的值
 
 double data_Tem;
 
+uint8_t SOCvalue;
 void processData(PCTRL_MSG msg)
 {									   // HAL_UART_Transmit(&huart1, (uint8_t *)msg, sizeof(CTRL_MSG), 0xFFFF);
 									   //  解决大端小端问题。stm32是大端处理
@@ -257,7 +258,7 @@ void ScreenUpdateForce(uint32_t value, uint16_t work_mode)
 
 void ScreenUpdateSOC(uint16_t value, uint8_t state)
 {
-	uint8_t SOCvalue;
+
 	SOCvalue = value / 20;
 	if (SOCvalue == 5)
 		SOCvalue = 4;
@@ -278,62 +279,6 @@ void ScreenUpdateSOC(uint16_t value, uint8_t state)
 	SendBuff[10] = 0xFF;
 	SendBuff[11] = 0xFF;
 HAL_UART_Transmit_DMA(&huart1, SendBuff, 12);
-    //vTaskDelay(20 / portTICK_PERIOD_MS);
-//	if (value == 100)
-//	{
-//		SendBuff2[0] = 0xEE;
-//		SendBuff2[1] = 0xB1;
-//		SendBuff2[2] = 0x10;
-//		SendBuff2[3] = 0x00;
-//		SendBuff2[4] = 0x01;
-//		SendBuff2[5] = 0x00;
-//		SendBuff2[6] = 0x04;
-//		SendBuff2[7] = value / 100 + '0';
-//		SendBuff2[8] = value / 10 % 10 + '0';
-//		SendBuff2[9] = value % 10 + '0';
-//
-//		SendBuff2[10] = 0xFF;
-//		SendBuff2[11] = 0xFC;
-//		SendBuff2[12] = 0xFF;
-//		SendBuff2[13] = 0xFF;
-//		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 14);
-//	}
-//	if (value < 100 && value > 9)
-//	{
-//		SendBuff2[0] = 0xEE;
-//		SendBuff2[1] = 0xB1;
-//		SendBuff2[2] = 0x10;
-//		SendBuff2[3] = 0x00;
-//		SendBuff2[4] = 0x01;
-//		SendBuff2[5] = 0x00;
-//		SendBuff2[6] = 0x04;
-//		SendBuff2[7] = value / 10 % 10 + '0';
-//		SendBuff2[8] = value % 10 + '0';
-//
-//		SendBuff2[9] = 0xFF;
-//		SendBuff2[10] = 0xFC;
-//		SendBuff2[11] = 0xFF;
-//		SendBuff2[12] = 0xFF;
-//		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 13);
-//	}
-//	if (value < 10)
-//	{
-//		SendBuff2[0] = 0xEE;
-//		SendBuff2[1] = 0xB1;
-//		SendBuff2[2] = 0x10;
-//		SendBuff2[3] = 0x00;
-//		SendBuff2[4] = 0x01;
-//		SendBuff2[5] = 0x00;
-//		SendBuff2[6] = 0x04;
-//		SendBuff2[7] = value % 10 + '0';
-//
-//		SendBuff2[8] = 0xFF;
-//		SendBuff2[9] = 0xFC;
-//		SendBuff2[10] = 0xFF;
-//		SendBuff2[11] = 0xFF;
-//		HAL_UART_Transmit_DMA(&huart1, SendBuff2, 12);
-//	}
-
 	
 }
 

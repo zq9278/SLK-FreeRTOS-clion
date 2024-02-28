@@ -79,7 +79,7 @@ const osThreadAttr_t HeatTask_attributes = {
 osThreadId_t Uart_ProcessTasHandle;
 const osThreadAttr_t Uart_ProcessTas_attributes = {
   .name = "Uart_ProcessTas",
-  .priority = (osPriority_t) osPriorityRealtime7,
+  .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
 /* Definitions for Charge_Task */
@@ -200,7 +200,7 @@ void AppMotor_Task(void *argument)
     uint8_t Motor_Reset_Position_ReadData[4];
     TMC5130_Init();
     HX711_Init();
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+
     vTaskDelay(200);
     xEventGroupSetBits(All_EventHandle, Reset_Motor_BIT_4);//设置电机复位事件
     uint32_t Force_Raw_Data[3];
@@ -336,6 +336,7 @@ void App_Uart_ProcessTask(void *argument)
                 // portMAX_DELAY    // Whether to wait indefinitely
         );
         //vTaskDelay(5);
+
         if ((Data_Event_Bit & Heat_BIT_0) != 0) { // printf("打开热敷数据");
             ProcessTemperatureData(0x0302);
             //vTaskDelay(10);
@@ -357,6 +358,7 @@ void App_Uart_ProcessTask(void *argument)
             // HAL_UART_Transmit(&huart1, (uint8_t *)&(uart_rx_data.buffer), uart_rx_data.length, 0xFFFF);
             processData((PCTRL_MSG) uart_rx_data.buffer); // 处理接收到的数据
         }
+        vTaskDelay(20);
     }
   /* USER CODE END App_Uart_ProcessTask */
 }
@@ -376,20 +378,32 @@ void App_Charge_Task(void *argument)
     AT24CXX_Init(); // 非易失性存储芯片初始化
     PWM_WS2812B_Init();
     UCS1903Show();
+    EventBits_t Power_Event_Bit;
     //PWM_WS2812B_Write_24Bits(4,100);
     /* Infinite loop */
+
     for (;;) {
+        Power_Event_Bit = xEventGroupWaitBits(
+                All_EventHandle,                                  // Event group handle
+                PowerState_BIT_5, // flag bits to wait for
+                pdFALSE,                                          // clear these bits when the function responds
+                pdFALSE,                                          // Whether to wait for all flag bits
+                100                                               // Whether to wait indefinitely
+                // portMAX_DELAY    // Whether to wait indefinitely
+        );
         BQ25895_MultiRead(BQ25895Reg); // 读取充电状态
         PowerStateUpdate();
         BQ27441_MultiRead(&BQ27441);              // 获取电量计数
         ScreenUpdateSOC(BQ27441.SOC, PowerState); // 电量上传
-        if (PowerState == 1) {
+        if ((Power_Event_Bit & PowerState_BIT_5) != 0) {
+            //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_SET);
             loopBreatheEffect();//如果检测到充电，就开启呼吸灯
-        } else {
-            PWM_WS2812B_Write_24Bits(4, 0x2f2f2f);//正常工作指示灯白色
-
         }
-        vTaskDelay(20);
+    if ((Power_Event_Bit & PowerState_BIT_5) == 0) {
+        // HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_RESET);
+        PWM_WS2812B_Write_24Bits(4, 0x2f2f2f);//正常工作指示灯白色
+    }
+        //vTaskDelay(20);
 
     }
   /* USER CODE END App_Charge_Task */
