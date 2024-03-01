@@ -381,7 +381,6 @@ void App_Charge_Task(void *argument)
     EventBits_t Power_Event_Bit;
     //PWM_WS2812B_Write_24Bits(4,100);
     /* Infinite loop */
-
     for (;;) {
         Power_Event_Bit = xEventGroupWaitBits(
                 All_EventHandle,                                  // Event group handle
@@ -389,19 +388,27 @@ void App_Charge_Task(void *argument)
                 pdFALSE,                                          // clear these bits when the function responds
                 pdFALSE,                                          // Whether to wait for all flag bits
                 100                                               // Whether to wait indefinitely
-                // portMAX_DELAY    // Whether to wait indefinitely
+                 //                                                                                                                                                               portMAX_DELAY    // Whether to wait indefinitely7
         );
         BQ25895_MultiRead(BQ25895Reg); // 读取充电状态
         PowerStateUpdate();
         BQ27441_MultiRead(&BQ27441);              // 获取电量计数
-        ScreenUpdateSOC(BQ27441.SOC, PowerState); // 电量上传
-        if ((Power_Event_Bit & PowerState_BIT_5) != 0) {
+        if ((Power_Event_Bit & PowerState_BIT_5) != 0) {//充电状态
             //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_SET);
             loopBreatheEffect();//如果检测到充电，就开启呼吸灯
+
+            //HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
+            xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
+            xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
+            xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 加热事件清除
         }
-    if ((Power_Event_Bit & PowerState_BIT_5) == 0) {
-        // HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_RESET);
-        PWM_WS2812B_Write_24Bits(4, 0x2f2f2f);//正常工作指示灯白色
+    if ((Power_Event_Bit & PowerState_BIT_5) == 0) {//不充电
+        PWM_WS2812B_Write_24Bits(4, 0x1f1f1f);
+        //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_RESET);
+        vTaskDelay(100);
+        ScreenUpdateSOC(BQ27441.SOC, PowerState); // 电量上传
+
+
     }
         //vTaskDelay(20);
 

@@ -46,6 +46,6 @@ void loopBreatheEffect(void){
         //blueColor <<= 8; // 将红色值移动到GRB格式的正确位置
         PWM_WS2812B_Write_24Bits(4, blueColor); // 假设控制一个LED
         //UCS1903Show(); // 发送更新的颜色数据
-        vTaskDelay(2); // 简单的延时来控制呼吸速度
+        vTaskDelay(10); // 简单的延时来控制呼吸速度
     }
 }

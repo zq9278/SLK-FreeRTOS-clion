@@ -278,8 +278,10 @@ void ScreenUpdateSOC(uint16_t value, uint8_t state)
 	SendBuff[9] = 0xFC;
 	SendBuff[10] = 0xFF;
 	SendBuff[11] = 0xFF;
-HAL_UART_Transmit_DMA(&huart1, SendBuff, 12);
-	
+//HAL_UART_Transmit_DMA(&huart1, SendBuff, 12);
+//HAL_UART_Transmit_IT(&huart1, SendBuff, 12);
+HAL_UART_Transmit(&huart1, SendBuff, 12,100);
+
 }
 
 void ScreenWorkModeQuit(uint8_t workmodenumber)
