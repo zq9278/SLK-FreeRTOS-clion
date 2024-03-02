@@ -60,6 +60,16 @@ extern I2C_HandleTypeDef hi2c2;
 extern BQ27441_typedef BQ27441;
 extern uint8_t PowerState;
 extern uint8_t BQ25895Reg[21];
+
+
+
+#define BREATHE_STEPS 256 // 假设有256个呼吸步骤
+
+volatile int breatheIndex = 0; // 当前呼吸效果的索引
+ uint32_t breatheLUT[BREATHE_STEPS] = {
+        0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 4, 5, 6, 6, 8, 9, 10, 11, 12, 14, 15, 17, 18, 20, 22, 23, 25, 27, 29, 31, 33, 35, 38, 40, 42, 45, 47, 49, 52, 54, 57, 60, 62, 65, 68, 71, 73, 76, 79, 82, 85, 88, 91, 94, 97, 100, 103, 106, 109, 113, 116, 119, 122, 125, 128, 131, 135, 138, 141, 144, 147, 150, 153, 156, 159, 162, 165, 168, 171, 174, 177, 180, 183, 186, 189, 191, 194, 197, 199, 202, 204, 207, 209, 212, 214, 216, 218, 221, 223, 225, 227, 229, 231, 232, 234, 236, 238, 239, 241, 242, 243, 245, 246, 247, 248, 249, 250, 251, 252, 252, 253, 253, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255, 254, 254, 253, 253, 252, 252, 251, 250, 249, 248, 247, 246, 245, 243, 242, 241, 239, 238, 236, 234, 232, 231, 229, 227, 225, 223, 221, 218, 216, 214, 212, 209, 207, 204, 202, 199, 197, 194, 191, 189, 186, 183, 180, 177, 174, 171, 168, 165, 162, 159, 156, 153, 150, 147, 144, 141, 138, 135, 131, 128, 125, 122, 119, 116, 113, 109, 106, 103, 100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 71, 68, 65, 62, 60, 57, 54, 52, 49, 47, 45, 42, 40, 38, 35, 33, 31, 29, 27, 25, 23, 22, 20, 18, 17, 15, 14, 12, 11, 10, 9, 8, 6, 6, 5, 4, 3, 2, 2, 1, 1, 1, 0, 0, 0, 0
+};
+
 /* USER CODE END Variables */
 /* Definitions for Motor_Task */
 osThreadId_t Motor_TaskHandle;
@@ -104,6 +114,11 @@ osMessageQueueId_t Force_QueueHandle;
 const osMessageQueueAttr_t Force_Queue_attributes = {
   .name = "Force_Queue"
 };
+/* Definitions for breatheTimer */
+osTimerId_t breatheTimerHandle;
+const osTimerAttr_t breatheTimer_attributes = {
+  .name = "breatheTimer"
+};
 /* Definitions for All_Event */
 osEventFlagsId_t All_EventHandle;
 const osEventFlagsAttr_t All_Event_attributes = {
@@ -119,6 +134,7 @@ void AppMotor_Task(void *argument);
 void APP_HeatTask(void *argument);
 void App_Uart_ProcessTask(void *argument);
 void App_Charge_Task(void *argument);
+void BreatheTimerCallback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -139,6 +155,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_SEMAPHORES */
     /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of breatheTimer */
+  breatheTimerHandle = osTimerNew(BreatheTimerCallback, osTimerPeriodic, NULL, &breatheTimer_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
@@ -224,7 +244,7 @@ void AppMotor_Task(void *argument)
                  ((Motor_Event_Bit & SW_BIT_1) != 0)) // 脉动或自动事件发生，按钮事件发生（正式脉动模式启动）
         {
             //vTaskDelay(1000);
-             HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+
             for (int i = 0; i < 3; ++i) {
                 Force_Raw_Data[i] = HX711_Read();
             }
@@ -379,8 +399,10 @@ void App_Charge_Task(void *argument)
     PWM_WS2812B_Init();
     UCS1903Show();
     EventBits_t Power_Event_Bit;
+    //TimerHandle_t breatheTimer; // 呼吸效果定时器句柄
     //PWM_WS2812B_Write_24Bits(4,100);
     /* Infinite loop */
+
     for (;;) {
         Power_Event_Bit = xEventGroupWaitBits(
                 All_EventHandle,                                  // Event group handle
@@ -393,26 +415,44 @@ void App_Charge_Task(void *argument)
         BQ25895_MultiRead(BQ25895Reg); // 读取充电状态
         PowerStateUpdate();
         BQ27441_MultiRead(&BQ27441);              // 获取电量计数
+        osTimerStart(breatheTimerHandle,10);
         if ((Power_Event_Bit & PowerState_BIT_5) != 0) {//充电状态
             //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_SET);
-            loopBreatheEffect();//如果检测到充电，就开启呼吸灯
+            //loopBreatheEffect();//如果检测到充电，就开启呼吸灯
             //HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
+
+
+
+
+
             xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
             xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
             xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 加热事件清除
         }
     if ((Power_Event_Bit & PowerState_BIT_5) == 0) {//不充电
-        PWM_WS2812B_Write_24Bits(4, 0x1f1f1f);
+        //PWM_WS2812B_Write_24Bits(4, 0x1f1f1f);
         //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_RESET);
         vTaskDelay(100);
         ScreenUpdateSOC(BQ27441.SOC, PowerState); // 电量上传
-
+        osTimerStop(breatheTimerHandle);
 
     }
         //vTaskDelay(20);
 
     }
+
   /* USER CODE END App_Charge_Task */
+}
+
+/* BreatheTimerCallback function */
+void BreatheTimerCallback(void *argument)
+{
+  /* USER CODE BEGIN BreatheTimerCallback */
+    uint32_t blueColor = breatheLUT[breatheIndex];
+    PWM_WS2812B_Write_24Bits(4, blueColor); // 更新LED亮度
+    breatheIndex = (breatheIndex + 1) % BREATHE_STEPS; // 更新索引
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+  /* USER CODE END BreatheTimerCallback */
 }
 
 /* Private application code --------------------------------------------------*/

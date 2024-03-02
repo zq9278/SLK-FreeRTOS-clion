@@ -1,7 +1,7 @@
 
 #include "ucs1903.h"
 #define BREATHE_STEPS 256 // 定义呼吸步骤的总数
-uint8_t breatheLUT[BREATHE_STEPS]; // 呼吸灯查找表
+extern uint8_t breatheLUT[BREATHE_STEPS]; // 呼吸灯查找表
 
 extern TIM_HandleTypeDef htim16;
 #define DATA_SIZE 24  // 每个 LED 24 位数据

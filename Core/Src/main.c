@@ -103,6 +103,7 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM16_Init();
   MX_TIM7_Init();
+  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */

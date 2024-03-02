@@ -425,8 +425,8 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
                 if (((xBits & Heat_BIT_0) != 0))
                 {
                     ScreenTimerStart(0x03);
-                    //HeatPIDInit(42.5);
-                    HeatPIDInit(41.0);
+                    HeatPIDInit(42.5);
+                    //HeatPIDInit(41.0);
                 }
                 if (((xBits & Auto_BIT_3) != 0))
                 {

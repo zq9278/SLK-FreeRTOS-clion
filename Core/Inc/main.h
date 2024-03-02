@@ -129,6 +129,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 #include "cmsis_os.h"
 #include "tmc5130.h"
 #include "queue.h"
@@ -147,6 +148,7 @@ void Error_Handler(void);
 #include "24cxx.h"
 #include "math.h"
 #include <string.h>
+#include "apply.h"
 
 #define Heat_BIT_0 (1 << 0)
 #define SW_BIT_1 (1 << 1)
