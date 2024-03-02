@@ -396,7 +396,6 @@ void App_Charge_Task(void *argument)
         if ((Power_Event_Bit & PowerState_BIT_5) != 0) {//充电状态
             //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_SET);
             loopBreatheEffect();//如果检测到充电，就开启呼吸灯
-
             //HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
             xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
             xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
