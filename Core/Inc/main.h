@@ -156,7 +156,7 @@ void Error_Handler(void);
 #define PowerState_BIT_5 (1 <<5)
 
 #define TMP114Address		0x92//xin
-//#define TMP114Address		0x90//lao
+ //#define TMP114Address		0x90//lao
 //#include "retarget.h"
 
 
