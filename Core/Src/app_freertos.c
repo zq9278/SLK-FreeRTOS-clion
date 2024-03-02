@@ -67,8 +67,9 @@ extern uint8_t BQ25895Reg[21];
 
 volatile int breatheIndex = 0; // 当前呼吸效果的索引
  uint32_t breatheLUT[BREATHE_STEPS] = {
-        0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 4, 5, 6, 6, 8, 9, 10, 11, 12, 14, 15, 17, 18, 20, 22, 23, 25, 27, 29, 31, 33, 35, 38, 40, 42, 45, 47, 49, 52, 54, 57, 60, 62, 65, 68, 71, 73, 76, 79, 82, 85, 88, 91, 94, 97, 100, 103, 106, 109, 113, 116, 119, 122, 125, 128, 131, 135, 138, 141, 144, 147, 150, 153, 156, 159, 162, 165, 168, 171, 174, 177, 180, 183, 186, 189, 191, 194, 197, 199, 202, 204, 207, 209, 212, 214, 216, 218, 221, 223, 225, 227, 229, 231, 232, 234, 236, 238, 239, 241, 242, 243, 245, 246, 247, 248, 249, 250, 251, 252, 252, 253, 253, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255, 254, 254, 253, 253, 252, 252, 251, 250, 249, 248, 247, 246, 245, 243, 242, 241, 239, 238, 236, 234, 232, 231, 229, 227, 225, 223, 221, 218, 216, 214, 212, 209, 207, 204, 202, 199, 197, 194, 191, 189, 186, 183, 180, 177, 174, 171, 168, 165, 162, 159, 156, 153, 150, 147, 144, 141, 138, 135, 131, 128, 125, 122, 119, 116, 113, 109, 106, 103, 100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 71, 68, 65, 62, 60, 57, 54, 52, 49, 47, 45, 42, 40, 38, 35, 33, 31, 29, 27, 25, 23, 22, 20, 18, 17, 15, 14, 12, 11, 10, 9, 8, 6, 6, 5, 4, 3, 2, 2, 1, 1, 1, 0, 0, 0, 0
-};
+          1,   1,   1,   2,   2,   3,   4,   5,   5,   6,   7,   9,
+         10,  11,  12};
+
 
 /* USER CODE END Variables */
 /* Definitions for Motor_Task */
@@ -415,14 +416,14 @@ void App_Charge_Task(void *argument)
         BQ25895_MultiRead(BQ25895Reg); // 读取充电状态
         PowerStateUpdate();
         BQ27441_MultiRead(&BQ27441);              // 获取电量计数
-        osTimerStart(breatheTimerHandle,10);
+
         if ((Power_Event_Bit & PowerState_BIT_5) != 0) {//充电状态
             //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_SET);
             //loopBreatheEffect();//如果检测到充电，就开启呼吸灯
             //HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
+            osTimerStart(breatheTimerHandle,10);
 
-
-
+            vTaskDelay(100);
 
 
             xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
@@ -430,7 +431,7 @@ void App_Charge_Task(void *argument)
             xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 加热事件清除
         }
     if ((Power_Event_Bit & PowerState_BIT_5) == 0) {//不充电
-        //PWM_WS2812B_Write_24Bits(4, 0x1f1f1f);
+        PWM_WS2812B_Write_24Bits(4, 0x1f1f1f);
         //HAL_GPIO_WritePin(GPIOA,GPIO_PIN_10,GPIO_PIN_RESET);
         vTaskDelay(100);
         ScreenUpdateSOC(BQ27441.SOC, PowerState); // 电量上传
@@ -448,9 +449,21 @@ void App_Charge_Task(void *argument)
 void BreatheTimerCallback(void *argument)
 {
   /* USER CODE BEGIN BreatheTimerCallback */
-    uint32_t blueColor = breatheLUT[breatheIndex];
-    PWM_WS2812B_Write_24Bits(4, blueColor); // 更新LED亮度
-    breatheIndex = (breatheIndex + 1) % BREATHE_STEPS; // 更新索引
+//    uint32_t blueColor = breatheLUT[breatheIndex];
+//    PWM_WS2812B_Write_24Bits(4, blueColor); // 更新LED亮度
+//    breatheIndex = (breatheIndex + 1) % BREATHE_STEPS; // 更新索引
+
+    static float breathePhase = 0; // 用于计算亮度的相位变量
+    const float phaseIncrement = 2 * M_PI / BREATHE_STEPS; // 每次调用增加的相位值
+
+    // 直接计算亮度值
+    uint8_t blueColor = (uint8_t)(((1 + sin(breathePhase - M_PI / 2)) / 2) * (200 - 10) + 10);
+    uint32_t color = 0x000000 | blueColor; // 构造颜色值
+
+    PWM_WS2812B_Write_24Bits(4, color); // 更新LED亮度
+    breathePhase += phaseIncrement; // 更新相位
+    if (breathePhase >= 2 * M_PI) breathePhase -= 2 * M_PI; // 确保相位在有效范围内
+
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
   /* USER CODE END BreatheTimerCallback */
 }
