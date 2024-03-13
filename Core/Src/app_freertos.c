@@ -254,7 +254,8 @@ void AppMotor_Task(void *argument)
                 HAL_TIM_Base_Start_IT(&htim7);//开启定时器进行电机状态切换
                 MotorCompareState = 1;//电机置为前进状态
             } else if ((ForceRawActual <= 300) && (MotorCompareState != 0)) {//压力传感器压力小于300且电机状态不空闲
-                TMC5130_Write(0xa7, 0x8000); // 治疗阶段的前进速度
+                HAL_TIM_Base_Stop_IT(&htim7);//开启定时器进行电机状态切换
+                TMC5130_Write(0xa7, 0x6000); // 治疗阶段的前进速度
                 TMC5130_Write(0xa0, 1);
                 MotorCompareState = 0;//电机置于非治疗阶段
             }
@@ -272,7 +273,7 @@ void AppMotor_Task(void *argument)
                     break;
             }
             Force_Q = (ForceRawActual - ForceRawOffset < 0) ? 0 : (ForceRawActual - ForceRawOffset);//去皮+去负数
-            Limit(Force_Q, 0, ForceRawSet + 82617);//最大值最小值做限幅
+            Limit(Force_Q, 0, ForceRawSet + 12617);//最大值最小值做限幅
             xQueueSend(Force_QueueHandle, &Force_Q, 0);
         } else if ((Motor_Event_Bit & Reset_Motor_BIT_4) != 0) {//电机复位事件被设置
             HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 使能tmc电机引脚
@@ -422,10 +423,7 @@ void App_Charge_Task(void *argument)
             //loopBreatheEffect();//如果检测到充电，就开启呼吸灯
             //HAL_TIM_PWM_Stop(&htim14, TIM_CHANNEL_1);		 // disable pwm for heating film
             osTimerStart(breatheTimerHandle,10);
-
             vTaskDelay(100);
-
-
             xEventGroupClearBits(All_EventHandle, Auto_BIT_3);
             xEventGroupClearBits(All_EventHandle, Motor_BIT_2);
             xEventGroupClearBits(All_EventHandle, Heat_BIT_0); // 加热事件清除
@@ -449,22 +447,16 @@ void App_Charge_Task(void *argument)
 void BreatheTimerCallback(void *argument)
 {
   /* USER CODE BEGIN BreatheTimerCallback */
-//    uint32_t blueColor = breatheLUT[breatheIndex];
-//    PWM_WS2812B_Write_24Bits(4, blueColor); // 更新LED亮度
-//    breatheIndex = (breatheIndex + 1) % BREATHE_STEPS; // 更新索引
-
     static float breathePhase = 0; // 用于计算亮度的相位变量
     const float phaseIncrement = 2 * M_PI / BREATHE_STEPS; // 每次调用增加的相位值
-
     // 直接计算亮度值
     uint8_t blueColor = (uint8_t)(((1 + sin(breathePhase - M_PI / 2)) / 2) * (200 - 10) + 10);
     uint32_t color = 0x000000 | blueColor; // 构造颜色值
-
     PWM_WS2812B_Write_24Bits(4, color); // 更新LED亮度
     breathePhase += phaseIncrement; // 更新相位
     if (breathePhase >= 2 * M_PI) breathePhase -= 2 * M_PI; // 确保相位在有效范围内
 
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+    //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
   /* USER CODE END BreatheTimerCallback */
 }
 

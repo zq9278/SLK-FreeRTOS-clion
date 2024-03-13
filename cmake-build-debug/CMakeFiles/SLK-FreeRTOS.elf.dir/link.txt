@@ -1,0 +1,1 @@
+D:\SoftWare\STM32Cube\gcc-arm-none-eabi-10.3-2021.10\bin\arm-none-eabi-gcc.exe -g -Wl,-gc-sections,--print-memory-usage,-Map=D:/STM32_CODE/clion/cmake-build-debug/SLK-FreeRTOS.map -mcpu=cortex-m0 -mthumb -mthumb-interwork -T D:/STM32_CODE/clion/STM32G070CBTX_FLASH.ld @CMakeFiles\SLK-FreeRTOS.elf.dir\objects1.rsp -o SLK-FreeRTOS.elf 

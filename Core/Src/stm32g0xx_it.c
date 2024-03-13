@@ -425,13 +425,13 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
                 if (((xBits & Heat_BIT_0) != 0))
                 {
                     ScreenTimerStart(0x03);
-                    HeatPIDInit(42.5);
+                    HeatPIDInit(41.5);
                     //HeatPIDInit(41.0);
                 }
                 if (((xBits & Auto_BIT_3) != 0))
                 {
                     //HeatPIDInit(42.5);
-                    HeatPIDInit(41.0);//加热设置温度
+                    HeatPIDInit(41.5);//加热设置温度
                     HAL_GPIO_WritePin(TMC_ENN_GPIO_Port, TMC_ENN_Pin, GPIO_PIN_RESET); // 电机失能
                     TMC5130_Write(0xa7, 0x8000);
                     TMC5130_Write(0xa0, 1);

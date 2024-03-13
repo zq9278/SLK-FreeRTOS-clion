@@ -95,6 +95,9 @@ void processData(PCTRL_MSG msg)
         data_Tem = data / 88.4; // 毫米汞柱换算成牛顿力
 						  // HAL_UART_Transmit(&huart1, (uint8_t *)&data, sizeof(uint16_t), 0xFFFF);
 		ForceRawSet = (data_Tem / 0.0098)*HX711_SCALE_FACTOR_100;
+
+//            data = data / 80; // 设定压力
+//            ForceRawSet = data * HX711_SCALE_FACTOR;
 		MotorCompareState = 0;//电机状态设置为一直前进
 		xEventGroupSetBits(All_EventHandle, xBitsToSet1); // 设定脉动任务开启标志位
 		break;
@@ -111,8 +114,10 @@ void processData(PCTRL_MSG msg)
 	/*自动模式开始*/
 	case 0x1037:
 		HeatPIDInit(37.0);
-		data = data / 80; // 设定压力
-		ForceRawSet = data * HX711_SCALE_FACTOR;
+//		data = data / 80; // 设定压力
+//		ForceRawSet = data * HX711_SCALE_FACTOR;
+            data_Tem = data / 88.4; // 毫米汞柱换算成牛顿力
+            ForceRawSet = (data_Tem / 0.0098)*HX711_SCALE_FACTOR_100;
 		MotorCompareState = 0;
 		xEventGroupSetBits(All_EventHandle, Auto_BIT_3); // 设定自动任务开启标志位
 		HAL_TIM_PWM_Start(&htim14, TIM_CHANNEL_1);		 // enable pwm for heating film
